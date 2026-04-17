@@ -21,7 +21,7 @@ An all-in-one, Arduino-powered desktop companion designed to keep you focused, h
 * 1x Piezo Buzzer
 * 1x Push Button
 
-## 🔌 Pin Mapping
+##  Pin Mapping
 | Component | Arduino Pin |
 | :--- | :--- |
 | Push Button | `D2` |
