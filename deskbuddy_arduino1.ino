@@ -3,7 +3,7 @@
 
 Adafruit_LiquidCrystal lcd(0);
 
-// OPTIMIZATION: Using 'byte' saves 50% memory per variable
+
 const byte trigPin = 9;
 const byte echoPin = 10;
 const byte buzzerPin = 8;
@@ -36,7 +36,7 @@ void setup() {
   pinMode(buzzerPin, OUTPUT);
   pinMode(buttonPin, INPUT_PULLUP); 
   
-  // Serial.begin removed to save huge amounts of RAM!
+
   
   lcd.begin(16, 2);
   strip.begin();
@@ -58,7 +58,7 @@ int measureDistance() {
   
   long duration = pulseIn(echoPin, HIGH, 30000); 
   if (duration == 0) return 0;
-  // OPTIMIZATION: Integer math instead of decimals (duration * 0.034 / 2)
+
   return (duration * 34) / 2000; 
 }
 
@@ -162,7 +162,7 @@ void loop() {
     
     lcd.setCursor(0, 1);
     
-    // OPTIMIZATION: Read sensors directly without storing them in variables
+
     if (analogRead(lightPin) < darkThreshold) {
       lcd.print("Warning: DARK!  ");
       if (!alarmTriggered) { tone(buzzerPin, 300); alarmTriggered = true; } 
@@ -172,7 +172,7 @@ void loop() {
       setGlow(255, 0, 0); 
       if (!alarmTriggered) { tone(buzzerPin, 600); alarmTriggered = true; } 
     } 
-    // OPTIMIZATION: Integer math mapping for temp, no decimals!
+
     else if (map(analogRead(tempPin), 0, 1023, -50, 450) > hotThreshold) {
       lcd.print("Temp: HOT!      ");
       setGlow(255, 100, 0); 
