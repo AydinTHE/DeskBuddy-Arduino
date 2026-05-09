@@ -1,613 +1,1043 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>DeskBuddy — Dashboard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DeskBuddy — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
-<style>
-  :root {
-    --bg:      #09090b;
-    --surface: rgba(24,24,27,0.7);
-    --border:  rgba(63,63,70,0.6);
-    --green:   #4ade80;
-    --green2:  #22c55e;
-    --amber:   #fbbf24;
-    --red:     #f87171;
-    --muted:   #71717a;
-    --text:    #f4f4f5;
-    --sub:     #a1a1aa;
-  }
+  <style>
+    :root {
+      --bg: #09090b;
+      --surface: rgba(24, 24, 27, 0.7);
+      --border: rgba(63, 63, 70, 0.6);
+      --green: #4ade80;
+      --green2: #22c55e;
+      --amber: #fbbf24;
+      --red: #f87171;
+      --muted: #71717a;
+      --text: #f4f4f5;
+      --sub: #a1a1aa;
+      --sidebar-bg: rgba(9, 9, 11, 0.85);
+      --sidebar-panel-bg: rgba(39, 39, 42, 0.6);
+    }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+    body.light-mode {
+      --bg: #f4f4f5;
+      --surface: rgba(255, 255, 255, 0.7);
+      --border: rgba(212, 212, 216, 0.6);
+      --green: #16a34a;
+      --green2: #15803d;
+      --amber: #d97706;
+      --red: #dc2626;
+      --muted: #a1a1aa;
+      --text: #18181b;
+      --sub: #52525b;
+      --sidebar-bg: rgba(255, 255, 255, 0.85);
+      --sidebar-panel-bg: rgba(244, 244, 245, 0.6);
+    }
 
-  body {
-    background: var(--bg);
-    font-family: 'Inter', sans-serif;
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+    body.light-mode::before {
+      opacity: 0.015;
+    }
 
-  /* Noise texture overlay */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 0;
-  }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-  .glass {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 24px;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    position: relative;
-    overflow: hidden;
-    transition: border-color .25s;
-  }
-  .glass::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(74,222,128,.04) 0%, transparent 60%);
-    pointer-events: none;
-  }
-  .glass:hover { border-color: rgba(74,222,128,.22); }
+    body {
+      background: var(--bg);
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
 
-  .font-display { font-family: 'Syne', sans-serif; }
-  .font-mono    { font-family: 'DM Mono', monospace; }
+    /* Noise texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
 
-  /* Pomodoro ring */
-  .ring-wrap { position: relative; width: 120px; height: 120px; }
-  .ring-wrap svg { position: absolute; inset: 0; transform: rotate(-90deg); }
-  .ring-bg  { fill: none; stroke: rgba(63,63,70,.5); stroke-width: 6; }
-  .ring-arc {
-    fill: none;
-    stroke: var(--green);
-    stroke-width: 6;
-    stroke-linecap: round;
-    transition: stroke-dashoffset .8s cubic-bezier(.4,0,.2,1),
-                stroke .4s;
-  }
-  .ring-center {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-  }
+    .glass {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      position: relative;
+      overflow: hidden;
+      transition: border-color .25s;
+    }
 
-  /* Gauge arc */
-  .gauge { position: relative; width: 88px; height: 50px; overflow: hidden; }
-  .gauge svg { position: absolute; top: 0; left: 0; }
+    .glass::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(74, 222, 128, .04) 0%, transparent 60%);
+      pointer-events: none;
+    }
 
-  /* Stat pill */
-  .pill {
-    background: rgba(74,222,128,.08);
-    border: 1px solid rgba(74,222,128,.2);
-    border-radius: 999px;
-    padding: 2px 10px;
-    font-size: 11px;
-    color: var(--green);
-    font-family: 'DM Mono', monospace;
-  }
+    .glass:hover {
+      border-color: rgba(74, 222, 128, .22);
+    }
 
-  /* Live feed item */
-  .feed-item {
-    display: flex; align-items: flex-start; gap: 10px;
-    padding: 9px 0;
-    border-bottom: 1px solid rgba(63,63,70,.4);
-    animation: fadeIn .4s ease both;
-  }
-  .feed-item:last-child { border-bottom: none; }
-  @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+    .font-display {
+      font-family: 'Syne', sans-serif;
+    }
 
-  /* Pulse dot */
-  .pulse-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--green);
-    box-shadow: 0 0 0 0 rgba(74,222,128,.6);
-    animation: pulse 2s infinite;
-    flex-shrink: 0; margin-top: 4px;
-  }
-  @keyframes pulse {
-    0%   { box-shadow: 0 0 0 0   rgba(74,222,128,.6); }
-    70%  { box-shadow: 0 0 0 8px rgba(74,222,128,0);  }
-    100% { box-shadow: 0 0 0 0   rgba(74,222,128,0);  }
-  }
+    .font-mono {
+      font-family: 'DM Mono', monospace;
+    }
 
-  /* Quick action btn */
-  .qbtn {
-    display: flex; flex-direction: column; align-items: center; gap: 6px;
-    background: rgba(39,39,42,.8);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 14px 12px;
-    cursor: pointer;
-    transition: all .2s;
-    color: var(--sub);
-    font-size: 12px;
-    font-family: 'DM Mono', monospace;
-  }
-  .qbtn:hover {
-    border-color: rgba(74,222,128,.4);
-    color: var(--green);
-    background: rgba(74,222,128,.06);
-    transform: translateY(-2px);
-  }
+    /* Pomodoro ring */
+    .ring-wrap {
+      position: relative;
+      width: 120px;
+      height: 120px;
+    }
 
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .ring-wrap svg {
+      position: absolute;
+      inset: 0;
+      transform: rotate(-90deg);
+    }
 
-  /* Status badge */
-  .badge-good    { color: var(--green);  background: rgba(74,222,128,.1); border-color: rgba(74,222,128,.25); }
-  .badge-warning { color: var(--amber);  background: rgba(251,191,36,.1);  border-color: rgba(251,191,36,.25); }
-  .badge-poor    { color: var(--red);    background: rgba(248,113,113,.1); border-color: rgba(248,113,113,.25); }
+    .ring-bg {
+      fill: none;
+      stroke: rgba(63, 63, 70, .5);
+      stroke-width: 6;
+    }
 
-  /* AI card shimmer */
-  @keyframes shimmer {
-    0%   { background-position: -600px 0; }
-    100% { background-position:  600px 0; }
-  }
-  .shimmer {
-    background: linear-gradient(90deg, transparent 25%, rgba(74,222,128,.06) 50%, transparent 75%);
-    background-size: 600px 100%;
-    animation: shimmer 2s infinite linear;
-  }
+    .ring-arc {
+      fill: none;
+      stroke: var(--green);
+      stroke-width: 6;
+      stroke-linecap: round;
+      transition: stroke-dashoffset .8s cubic-bezier(.4, 0, .2, 1),
+        stroke .4s;
+    }
 
-  /* Insight card glow */
-  .insight-glow {
-    box-shadow: 0 0 40px rgba(74,222,128,.06), 0 0 1px rgba(74,222,128,.3) inset;
-  }
+    .ring-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
 
-  .sidebar-link {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 14px; border-radius: 12px;
-    color: var(--sub); font-size: 13.5px;
-    transition: all .2s; cursor: pointer;
-  }
-  .sidebar-link:hover, .sidebar-link.active {
-    background: rgba(74,222,128,.09);
-    color: var(--green);
-  }
-  .sidebar-link.active { font-weight: 500; }
-</style>
+    /* Gauge arc */
+    .gauge {
+      position: relative;
+      width: 88px;
+      height: 50px;
+      overflow: hidden;
+    }
+
+    .gauge svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    /* Stat pill */
+    .pill {
+      background: rgba(74, 222, 128, .08);
+      border: 1px solid rgba(74, 222, 128, .2);
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-size: 11px;
+      color: var(--green);
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* Live feed item */
+    .feed-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(63, 63, 70, .4);
+      animation: fadeIn .4s ease both;
+    }
+
+    .feed-item:last-child {
+      border-bottom: none;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Pulse dot */
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 0 rgba(74, 222, 128, .6);
+      animation: pulse 2s infinite;
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(74, 222, 128, .6);
+      }
+
+      70% {
+        box-shadow: 0 0 0 8px rgba(74, 222, 128, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+      }
+    }
+
+    /* Quick action btn */
+    .qbtn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      background: rgba(39, 39, 42, .8);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 12px;
+      cursor: pointer;
+      transition: all .2s;
+      color: var(--sub);
+      font-size: 12px;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .qbtn:hover {
+      border-color: rgba(74, 222, 128, .4);
+      color: var(--green);
+      background: rgba(74, 222, 128, .06);
+      transform: translateY(-2px);
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    /* Status badge */
+    .badge-good {
+      color: var(--green);
+      background: rgba(74, 222, 128, .1);
+      border-color: rgba(74, 222, 128, .25);
+    }
+
+    .badge-warning {
+      color: var(--amber);
+      background: rgba(251, 191, 36, .1);
+      border-color: rgba(251, 191, 36, .25);
+    }
+
+    .badge-poor {
+      color: var(--red);
+      background: rgba(248, 113, 113, .1);
+      border-color: rgba(248, 113, 113, .25);
+    }
+
+    /* AI card shimmer */
+    @keyframes shimmer {
+      0% {
+        background-position: -600px 0;
+      }
+
+      100% {
+        background-position: 600px 0;
+      }
+    }
+
+    .shimmer {
+      background: linear-gradient(90deg, transparent 25%, rgba(74, 222, 128, .06) 50%, transparent 75%);
+      background-size: 600px 100%;
+      animation: shimmer 2s infinite linear;
+    }
+
+    /* Insight card glow */
+    .insight-glow {
+      box-shadow: 0 0 40px rgba(74, 222, 128, .06), 0 0 1px rgba(74, 222, 128, .3) inset;
+    }
+
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      color: var(--sub);
+      font-size: 13.5px;
+      transition: all .2s;
+      cursor: pointer;
+    }
+
+    .sidebar-link:hover,
+    .sidebar-link.active {
+      background: rgba(74, 222, 128, .09);
+      color: var(--green);
+    }
+
+    .sidebar-link.active {
+      font-weight: 500;
+    }
+  </style>
 </head>
+
 <body>
 
-<div style="position:relative;z-index:1;display:flex;min-height:100vh;">
+  <div style="position:relative;z-index:1;display:flex;min-height:100vh;">
 
-  <!-- ══════════════ SIDEBAR ══════════════ -->
-  <aside style="width:220px;flex-shrink:0;padding:24px 16px;display:flex;flex-direction:column;gap:4px;border-right:1px solid var(--border);background:rgba(9,9,11,.85);backdrop-filter:blur(20px);position:sticky;top:0;height:100vh;">
-    <!-- Logo -->
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 6px 20px;">
-      <div style="width:36px;height:36px;border-radius:10px;background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.3);display:flex;align-items:center;justify-content:center;font-size:18px;">🌱</div>
-      <div>
-        <div class="font-display" style="font-weight:700;font-size:15px;color:var(--green);">DeskBuddy</div>
-        <div style="font-size:10px;color:var(--muted);">Focus better. Feel better.</div>
-      </div>
-    </div>
-
-    <div class="sidebar-link active">🏠 Dashboard</div>
-    <div class="sidebar-link">🍅 Focus Sessions</div>
-    <div class="sidebar-link">🧍 Posture Monitor</div>
-    <div class="sidebar-link">🌿 Environment</div>
-    <div class="sidebar-link">📊 History & Stats</div>
-    <div class="sidebar-link">⚙️ Settings</div>
-    <div class="sidebar-link">ℹ️ About DeskBuddy</div>
-
-    <div style="flex:1;"></div>
-
-    <!-- Connection status -->
-    <div style="padding:12px;background:rgba(39,39,42,.6);border:1px solid var(--border);border-radius:14px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-        <div class="pulse-dot"></div>
-        <span style="font-size:12px;font-weight:500;color:var(--green);">Connected</span>
-      </div>
-      <div style="font-size:11px;color:var(--muted);">DeskBuddy is online</div>
-    </div>
-  </aside>
-
-  <!-- ══════════════ MAIN ══════════════ -->
-  <main style="flex:1;padding:28px;display:flex;flex-direction:column;gap:20px;max-width:1200px;">
-
-    <!-- Header -->
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;">
-      <div>
-        <h1 class="font-display" style="font-size:28px;font-weight:800;letter-spacing:-.5px;">Dashboard</h1>
-        <p style="font-size:13.5px;color:var(--sub);margin-top:2px;">Welcome back! Stay focused and keep growing.</p>
-      </div>
-      <div style="display:flex;align-items:center;gap:16px;">
-        <div style="text-align:right;">
-          <div id="clock" class="font-mono" style="font-size:15px;color:var(--text);"></div>
-          <div id="datestr" style="font-size:11px;color:var(--muted);margin-top:1px;"></div>
-        </div>
-        <div style="width:36px;height:36px;border-radius:50%;background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.3);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;" title="Refresh now" onclick="fetchData()">↻</div>
-      </div>
-    </div>
-
-    <!-- ── Row 1: Stat cards ── -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
-
-      <!-- Pomodoro -->
-      <div class="glass" style="padding:20px;">
-        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.04em;margin-bottom:12px;">FOCUS SESSION</div>
-        <div style="display:flex;align-items:center;gap:14px;">
-          <div class="ring-wrap">
-            <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-              <circle class="ring-bg" cx="60" cy="60" r="52"/>
-              <circle id="pomRing" class="ring-arc" cx="60" cy="60" r="52"
-                stroke-dasharray="326.7" stroke-dashoffset="0"/>
-            </svg>
-            <div class="ring-center">
-              <div class="font-display" style="font-size:22px;font-weight:700;" id="pomTimer">25:00</div>
-              <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;" id="pomMode">FOCUS</div>
-            </div>
-          </div>
-          <div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Current Mode</div>
-            <div class="font-display" style="font-size:16px;font-weight:700;color:var(--green);" id="pomLabel">Focus Time</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:8px;">Session</div>
-            <div id="pomSession" class="pill" style="margin-top:3px;display:inline-block;">1 / 4</div>
-          </div>
-        </div>
-        <div style="margin-top:14px;display:flex;gap:8px;">
-          <button onclick="pomCtrl('start')" style="flex:1;padding:7px 0;border-radius:10px;background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.3);color:var(--green);font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(74,222,128,.25)'" onmouseout="this.style.background='rgba(74,222,128,.15)'">▶ Start</button>
-          <button onclick="pomCtrl('reset')" style="flex:1;padding:7px 0;border-radius:10px;background:rgba(63,63,70,.3);border:1px solid var(--border);color:var(--sub);font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(63,63,70,.5)'" onmouseout="this.style.background='rgba(63,63,70,.3)'">↺ Reset</button>
-        </div>
-      </div>
-
-      <!-- Focus Score -->
-      <div class="glass" style="padding:20px;">
-        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.04em;margin-bottom:12px;">TOTAL FOCUS TIME</div>
-        <div style="font-size:36px;font-weight:700;font-family:'Syne',sans-serif;" id="totalFocus">—</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Today · Sessions: <span id="sessionCount" style="color:var(--text);">—</span></div>
-        <div style="height:6px;background:rgba(63,63,70,.5);border-radius:4px;overflow:hidden;">
-          <div id="focusBar" style="height:100%;background:linear-gradient(90deg,var(--green2),var(--green));border-radius:4px;width:0%;transition:width .8s cubic-bezier(.4,0,.2,1);"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-top:6px;">
-          <span style="font-size:11px;color:var(--muted);">Daily Goal</span>
-          <span id="focusPct" class="font-mono" style="font-size:11px;color:var(--green);">—</span>
-        </div>
-      </div>
-
-      <!-- Posture -->
-      <div class="glass" style="padding:20px;">
-        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.04em;margin-bottom:12px;">POSTURE STATUS</div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-          <span id="postureIcon" style="font-size:28px;">😊</span>
-          <div>
-            <div class="font-display" style="font-size:20px;font-weight:700;" id="postureStatus">Good</div>
-            <div id="postureBadge" class="pill badge-good" style="font-size:10px;margin-top:2px;display:inline-block;">Score: 100</div>
-          </div>
-        </div>
-        <p id="postureMsg" style="font-size:12px;color:var(--sub);line-height:1.5;">You are sitting in a healthy posture.</p>
-      </div>
-
-      <!-- Environment -->
-      <div class="glass" style="padding:20px;">
-        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.04em;margin-bottom:12px;">ENVIRONMENT</div>
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <div style="display:flex;align-items:center;gap:6px;">
-              <span style="font-size:14px;">🌡️</span>
-              <span style="font-size:12px;color:var(--sub);">Temp</span>
-            </div>
-            <span id="tempVal" class="font-mono" style="font-size:15px;font-weight:500;">—</span>
-          </div>
-          <div id="tempBar" style="height:4px;background:rgba(63,63,70,.5);border-radius:2px;overflow:hidden;">
-            <div id="tempBarFill" style="height:100%;width:0%;background:linear-gradient(90deg,#60a5fa,var(--amber));border-radius:2px;transition:width .8s;"></div>
-          </div>
-
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <div style="display:flex;align-items:center;gap:6px;">
-              <span style="font-size:14px;">💧</span>
-              <span style="font-size:12px;color:var(--sub);">Humidity</span>
-            </div>
-            <span id="humVal" class="font-mono" style="font-size:15px;font-weight:500;">—</span>
-          </div>
-
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <div style="display:flex;align-items:center;gap:6px;">
-              <span style="font-size:14px;">🌫️</span>
-              <span style="font-size:12px;color:var(--sub);">CO₂</span>
-            </div>
-            <span id="co2Val" class="font-mono" style="font-size:15px;font-weight:500;">—</span>
-          </div>
-          <div id="co2Bar" style="height:4px;background:rgba(63,63,70,.5);border-radius:2px;overflow:hidden;">
-            <div id="co2BarFill" style="height:100%;width:0%;background:linear-gradient(90deg,var(--green),var(--amber));border-radius:2px;transition:width .8s;"></div>
-          </div>
-
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <div style="display:flex;align-items:center;gap:6px;">
-              <span style="font-size:14px;">🍃</span>
-              <span style="font-size:12px;color:var(--sub);">AQI</span>
-            </div>
-            <span id="aqiVal" class="font-mono" style="font-size:15px;font-weight:500;">—</span>
-          </div>
-        </div>
-      </div>
-
-    </div><!-- /row1 -->
-
-    <!-- ── Row 2: Chart + Live Feed ── -->
-    <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;">
-
-      <!-- Line chart -->
-      <div class="glass" style="padding:24px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-          <div>
-            <div class="font-display" style="font-size:15px;font-weight:700;">Today's Overview</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px;">Focus · Break · Distractions</div>
-          </div>
-          <div class="pill" style="font-size:11px;">Live</div>
-        </div>
-        <div style="height:200px;">
-          <canvas id="focusChart"></canvas>
-        </div>
-      </div>
-
-      <!-- Live Feed -->
-      <div class="glass" style="padding:20px;display:flex;flex-direction:column;">
-        <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:14px;">Live Feed</div>
-        <div id="feedList" style="display:flex;flex-direction:column;flex:1;overflow-y:auto;max-height:240px;"></div>
-      </div>
-
-    </div>
-
-    <!-- ── Row 3: AI Insight (full width) ── -->
-    <div class="glass insight-glow" style="padding:24px;border-color:rgba(74,222,128,.2);">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-        <div style="width:32px;height:32px;border-radius:10px;background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.25);display:flex;align-items:center;justify-content:center;font-size:16px;">🤖</div>
+    <!-- ══════════════ SIDEBAR ══════════════ -->
+    <aside
+      style="width:220px;flex-shrink:0;padding:24px 16px;display:flex;flex-direction:column;gap:4px;border-right:1px solid var(--border);background:var(--sidebar-bg);backdrop-filter:blur(20px);position:sticky;top:0;height:100vh;">
+      <!-- Logo -->
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 6px 20px;">
+        <div
+          style="width:36px;height:36px;border-radius:10px;background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.3);display:flex;align-items:center;justify-content:center;font-size:18px;">
+          🌱</div>
         <div>
-          <div class="font-display" style="font-size:14px;font-weight:700;color:var(--green);">AI Smart Insight</div>
-          <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">Powered by Groq · <span id="cacheAge">—</span> · llama-3.3-70b-versatile</div>
-        </div>
-        <div id="insightLoader" style="margin-left:auto;display:none;">
-          <div style="width:16px;height:16px;border:2px solid rgba(74,222,128,.3);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;"></div>
-        </div>
-      </div>
-      <p id="aiInsight" style="font-size:14px;line-height:1.75;color:var(--sub);max-width:860px;">Analysing your sessions…</p>
-    </div>
-
-    <!-- ── Row 4: Weekly bar chart + Quick Actions ── -->
-    <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;">
-
-      <!-- Weekly bar -->
-      <div class="glass" style="padding:24px;">
-        <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:18px;">Weekly Progress</div>
-        <div style="height:160px;">
-          <canvas id="weekChart"></canvas>
+          <div class="font-display" style="font-weight:700;font-size:15px;color:var(--green);">DeskBuddy</div>
+          <div style="font-size:10px;color:var(--muted);">Focus better. Feel better.</div>
         </div>
       </div>
 
-      <!-- Quick Actions -->
-      <div class="glass" style="padding:20px;">
-        <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:14px;">Quick Actions</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <button class="qbtn" onclick="pomCtrl('start')"><span style="font-size:20px;">🍅</span>Start Focus</button>
-          <button class="qbtn"><span style="font-size:20px;">☕</span>Start Break</button>
-          <button class="qbtn"><span style="font-size:20px;">📊</span>View Stats</button>
-          <button class="qbtn"><span style="font-size:20px;">⚙️</span>Settings</button>
+      <div class="sidebar-link active" id="nav-dashboard" onclick="switchView('dashboard')">🏠 Dashboard</div>
+      <div class="sidebar-link" id="nav-focus">🍅 Focus Sessions</div>
+      <div class="sidebar-link" id="nav-posture">🧍 Posture Monitor</div>
+      <div class="sidebar-link" id="nav-environment" onclick="switchView('environment')">🌿 Environment</div>
+      <div class="sidebar-link" id="nav-history">📊 History & Stats</div>
+      <div class="sidebar-link" id="nav-settings" onclick="switchView('settings')">⚙️ Settings</div>
+      <div class="sidebar-link" id="nav-about">ℹ️ About DeskBuddy</div>
+
+      <div style="flex:1;"></div>
+
+      <!-- Connection status -->
+      <div style="padding:12px;background:var(--sidebar-panel-bg);border:1px solid var(--border);border-radius:14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <div class="pulse-dot"></div>
+          <span style="font-size:12px;font-weight:500;color:var(--green);">Connected</span>
         </div>
-        <!-- Weekly stats mini -->
-        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
-          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:'DM Mono',monospace;">SESSION BREAKDOWN</div>
-          <div style="display:flex;justify-content:space-between;">
-            <div style="text-align:center;">
-              <div id="statTotal" class="font-display" style="font-size:20px;font-weight:700;color:var(--green);">—</div>
-              <div style="font-size:10px;color:var(--muted);">Total</div>
+        <div style="font-size:11px;color:var(--muted);">DeskBuddy is online</div>
+      </div>
+    </aside>
+
+    <!-- ══════════════ MAIN ══════════════ -->
+    <main style="flex:1;padding:28px;display:flex;flex-direction:column;gap:20px;max-width:1200px;">
+
+      <!-- Header -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <h1 id="pageTitle" class="font-display" style="font-size:28px;font-weight:800;letter-spacing:-.5px;">Dashboard
+          </h1>
+          <p id="pageSubtitle" style="font-size:13.5px;color:var(--sub);margin-top:2px;">Welcome back! Stay focused and
+            keep growing.</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;">
+          <div style="text-align:right;">
+            <div id="clock" class="font-mono" style="font-size:15px;color:var(--text);"></div>
+            <div id="datestr" style="font-size:11px;color:var(--muted);margin-top:1px;"></div>
+          </div>
+          <div
+            style="width:36px;height:36px;border-radius:50%;background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.3);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;"
+            title="Refresh now" onclick="fetchData()">↻</div>
+        </div>
+      </div>
+
+      <!-- ── VIEWS CONTAINER ── -->
+      <div id="view-dashboard" style="display:flex;flex-direction:column;gap:20px;">
+        <!-- ── Row 1: Stat cards ── -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+
+          <!-- Pomodoro -->
+          <div class="glass" style="padding:20px;">
+            <div
+              style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.04em;margin-bottom:12px;">
+              FOCUS SESSION</div>
+            <div style="display:flex;align-items:center;gap:14px;">
+              <div class="ring-wrap">
+                <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                  <circle class="ring-bg" cx="60" cy="60" r="52" />
+                  <circle id="pomRing" class="ring-arc" cx="60" cy="60" r="52" stroke-dasharray="326.7"
+                    stroke-dashoffset="0" />
+                </svg>
+                <div class="ring-center">
+                  <div class="font-display" style="font-size:22px;font-weight:700;" id="pomTimer">25:00</div>
+                  <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;" id="pomMode">FOCUS
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Current Mode</div>
+                <div class="font-display" style="font-size:16px;font-weight:700;color:var(--green);" id="pomLabel">Focus
+                  Time</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:8px;">Session</div>
+                <div id="pomSession" class="pill" style="margin-top:3px;display:inline-block;">1 / 4</div>
+              </div>
             </div>
-            <div style="text-align:center;">
-              <div id="statAvgFocus" class="font-display" style="font-size:20px;font-weight:700;color:var(--green);">—</div>
-              <div style="font-size:10px;color:var(--muted);">Avg Focus</div>
-            </div>
-            <div style="text-align:center;">
-              <div id="statAvgCO2" class="font-display" style="font-size:20px;font-weight:700;color:var(--amber);">—</div>
-              <div style="font-size:10px;color:var(--muted);">Avg CO₂</div>
+            <div style="margin-top:14px;display:flex;gap:8px;">
+              <button onclick="pomCtrl('start')"
+                style="flex:1;padding:7px 0;border-radius:10px;background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.3);color:var(--green);font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;transition:all .2s;"
+                onmouseover="this.style.background='rgba(74,222,128,.25)'"
+                onmouseout="this.style.background='rgba(74,222,128,.15)'">▶ Start</button>
+              <button onclick="pomCtrl('reset')"
+                style="flex:1;padding:7px 0;border-radius:10px;background:rgba(63,63,70,.3);border:1px solid var(--border);color:var(--sub);font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;transition:all .2s;"
+                onmouseover="this.style.background='rgba(63,63,70,.5)'"
+                onmouseout="this.style.background='rgba(63,63,70,.3)'">↺ Reset</button>
             </div>
           </div>
+
+          <!-- Focus Score -->
+          <div class="glass" style="padding:20px;">
+            <div
+              style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.04em;margin-bottom:12px;">
+              TOTAL FOCUS TIME</div>
+            <div style="font-size:36px;font-weight:700;font-family:'Syne',sans-serif;" id="totalFocus">—</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Today · Sessions: <span id="sessionCount"
+                style="color:var(--text);">—</span></div>
+            <div style="height:6px;background:rgba(63,63,70,.5);border-radius:4px;overflow:hidden;">
+              <div id="focusBar"
+                style="height:100%;background:linear-gradient(90deg,var(--green2),var(--green));border-radius:4px;width:0%;transition:width .8s cubic-bezier(.4,0,.2,1);">
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:6px;">
+              <span style="font-size:11px;color:var(--muted);">Daily Goal</span>
+              <span id="focusPct" class="font-mono" style="font-size:11px;color:var(--green);">—</span>
+            </div>
+          </div>
+
+          <!-- Posture -->
+          <div class="glass" style="padding:20px;">
+            <div
+              style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.04em;margin-bottom:12px;">
+              POSTURE STATUS</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <span id="postureIcon" style="font-size:28px;">😊</span>
+              <div>
+                <div class="font-display" style="font-size:20px;font-weight:700;" id="postureStatus">Good</div>
+                <div id="postureBadge" class="pill badge-good"
+                  style="font-size:10px;margin-top:2px;display:inline-block;">Score: 100</div>
+              </div>
+            </div>
+            <p id="postureMsg" style="font-size:12px;color:var(--sub);line-height:1.5;">You are sitting in a healthy
+              posture.</p>
+          </div>
+
+          <!-- Environment -->
+          <div class="glass" style="padding:20px;">
+            <div
+              style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.04em;margin-bottom:12px;">
+              ENVIRONMENT</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="font-size:14px;">🌡️</span>
+                  <span style="font-size:12px;color:var(--sub);">Temp</span>
+                </div>
+                <span id="tempVal" class="font-mono" style="font-size:15px;font-weight:500;">—</span>
+              </div>
+              <div id="tempBar" style="height:4px;background:rgba(63,63,70,.5);border-radius:2px;overflow:hidden;">
+                <div id="tempBarFill"
+                  style="height:100%;width:0%;background:linear-gradient(90deg,#60a5fa,var(--amber));border-radius:2px;transition:width .8s;">
+                </div>
+              </div>
+
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="font-size:14px;">💧</span>
+                  <span style="font-size:12px;color:var(--sub);">Humidity</span>
+                </div>
+                <span id="humVal" class="font-mono" style="font-size:15px;font-weight:500;">—</span>
+              </div>
+
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="font-size:14px;">🌫️</span>
+                  <span style="font-size:12px;color:var(--sub);">CO₂</span>
+                </div>
+                <span id="co2Val" class="font-mono" style="font-size:15px;font-weight:500;">—</span>
+              </div>
+              <div id="co2Bar" style="height:4px;background:rgba(63,63,70,.5);border-radius:2px;overflow:hidden;">
+                <div id="co2BarFill"
+                  style="height:100%;width:0%;background:linear-gradient(90deg,var(--green),var(--amber));border-radius:2px;transition:width .8s;">
+                </div>
+              </div>
+
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="font-size:14px;">🍃</span>
+                  <span style="font-size:12px;color:var(--sub);">AQI</span>
+                </div>
+                <span id="aqiVal" class="font-mono" style="font-size:15px;font-weight:500;">—</span>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /row1 -->
+
+        <!-- ── Row 2: Chart + Live Feed ── -->
+        <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;">
+
+          <!-- Line chart -->
+          <div class="glass" style="padding:24px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+              <div>
+                <div class="font-display" style="font-size:15px;font-weight:700;">Today's Overview</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px;">Focus · Break · Distractions</div>
+              </div>
+              <div class="pill" style="font-size:11px;">Live</div>
+            </div>
+            <div style="height:200px;">
+              <canvas id="focusChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Live Feed -->
+          <div class="glass" style="padding:20px;display:flex;flex-direction:column;">
+            <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:14px;">Live Feed</div>
+            <div id="feedList" style="display:flex;flex-direction:column;flex:1;overflow-y:auto;max-height:240px;">
+            </div>
+          </div>
+
         </div>
-      </div>
 
-    </div>
+        <!-- ── Row 3: AI Insight (full width) ── -->
+        <div class="glass insight-glow" style="padding:24px;border-color:rgba(74,222,128,.2);">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+            <div
+              style="width:32px;height:32px;border-radius:10px;background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.25);display:flex;align-items:center;justify-content:center;font-size:16px;">
+              🤖</div>
+            <div>
+              <div class="font-display" style="font-size:14px;font-weight:700;color:var(--green);">AI Smart Insight
+              </div>
+              <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">Powered by Groq · <span
+                  id="cacheAge">—</span> · llama-3.3-70b-versatile</div>
+            </div>
+            <div id="insightLoader" style="margin-left:auto;display:none;">
+              <div
+                style="width:16px;height:16px;border:2px solid rgba(74,222,128,.3);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;">
+              </div>
+            </div>
+          </div>
+          <p id="aiInsight" style="font-size:14px;line-height:1.75;color:var(--sub);max-width:860px;">Analysing your
+            sessions…</p>
+        </div>
 
-    <!-- Tip bar -->
-    <div class="glass" style="padding:12px 20px;display:flex;align-items:center;gap:10px;border-color:rgba(74,222,128,.12);">
-      <span style="font-size:14px;">🌿</span>
-      <span id="tipText" style="font-size:13px;color:var(--sub);">Small steps every day lead to big changes. Stay consistent!</span>
-    </div>
+        <!-- ── Row 4: Weekly bar chart + Quick Actions ── -->
+        <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;">
 
-  </main>
-</div>
+          <!-- Weekly bar -->
+          <div class="glass" style="padding:24px;">
+            <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:18px;">Weekly Progress</div>
+            <div style="height:160px;">
+              <canvas id="weekChart"></canvas>
+            </div>
+          </div>
 
-<!-- ══════════════ SPIN keyframe ══════════════ -->
-<style>
-@keyframes spin { to { transform: rotate(360deg); } }
-</style>
+          <!-- Quick Actions -->
+          <div class="glass" style="padding:20px;">
+            <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:14px;">Quick Actions</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <button class="qbtn" onclick="pomCtrl('start')"><span style="font-size:20px;">🍅</span>Start
+                Focus</button>
+              <button class="qbtn"><span style="font-size:20px;">☕</span>Start Break</button>
+              <button class="qbtn"><span style="font-size:20px;">📊</span>View Stats</button>
+              <button class="qbtn"><span style="font-size:20px;">⚙️</span>Settings</button>
+            </div>
+            <!-- Weekly stats mini -->
+            <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:'DM Mono',monospace;">SESSION
+                BREAKDOWN</div>
+              <div style="display:flex;justify-content:space-between;">
+                <div style="text-align:center;">
+                  <div id="statTotal" class="font-display" style="font-size:20px;font-weight:700;color:var(--green);">—
+                  </div>
+                  <div style="font-size:10px;color:var(--muted);">Total</div>
+                </div>
+                <div style="text-align:center;">
+                  <div id="statAvgFocus" class="font-display"
+                    style="font-size:20px;font-weight:700;color:var(--green);">—</div>
+                  <div style="font-size:10px;color:var(--muted);">Avg Focus</div>
+                </div>
+                <div style="text-align:center;">
+                  <div id="statAvgCO2" class="font-display" style="font-size:20px;font-weight:700;color:var(--amber);">—
+                  </div>
+                  <div style="font-size:10px;color:var(--muted);">Avg CO₂</div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-<script>
-// ══════════════════════════════════════════════
-// CONFIG
-// ══════════════════════════════════════════════
-const API_BASE      = 'http://localhost:8000/api/v1';
-const REFRESH_MS    = 5000;   // 5-second dashboard refresh
-const DAILY_GOAL_H  = 8;      // hours
+        </div>
 
-const TIPS = [
-  "Small steps every day lead to big changes. Stay consistent!",
-  "Open a window for 5 min every hour — CO₂ directly impacts focus.",
-  "The Pomodoro technique: 25 min focus, 5 min break. Repeat.",
-  "Keep your monitor at arm's length and slightly below eye level.",
-  "Hydrate! Even mild dehydration can reduce focus by 15%.",
-  "Natural light boosts mood and alertness — sit near a window.",
-  "Take a 2-minute micro-break to stretch your wrists and shoulders.",
-];
-let tipIdx = 0;
+      </div><!-- /view-dashboard -->
 
-// ══════════════════════════════════════════════
-// CLOCK
-// ══════════════════════════════════════════════
-function updateClock() {
-  const now = new Date();
-  document.getElementById('clock').textContent =
-    now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-  document.getElementById('datestr').textContent =
-    now.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
-}
-setInterval(updateClock, 1000);
-updateClock();
+      <!-- ── ENVIRONMENT VIEW ── -->
+      <div id="view-environment" style="display:none;flex-direction:column;gap:20px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="glass" style="padding:24px;text-align:center;">
+            <div
+              style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.04em;margin-bottom:16px;">
+              TEMPERATURE</div>
+            <div style="font-size:48px;font-weight:700;font-family:'Syne',sans-serif;color:var(--text);"
+              id="envTempVal">—</div>
+            <div style="font-size:13px;color:var(--sub);margin-top:8px;" id="envTempStatus">Optimal range: 20-25°C</div>
+          </div>
+          <div class="glass" style="padding:24px;text-align:center;">
+            <div
+              style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.04em;margin-bottom:16px;">
+              HUMIDITY</div>
+            <div style="font-size:48px;font-weight:700;font-family:'Syne',sans-serif;color:var(--text);" id="envHumVal">
+              —</div>
+            <div style="font-size:13px;color:var(--sub);margin-top:8px;" id="envHumStatus">Optimal range: 40-60%</div>
+          </div>
+          <div class="glass" style="padding:24px;text-align:center;">
+            <div
+              style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.04em;margin-bottom:16px;">
+              CO₂ LEVELS</div>
+            <div style="font-size:48px;font-weight:700;font-family:'Syne',sans-serif;color:var(--green);"
+              id="envCo2Val">—</div>
+            <div style="font-size:13px;color:var(--sub);margin-top:8px;" id="envCo2Status">Optimal: < 800 ppm</div>
+            </div>
+            <div class="glass" style="padding:24px;text-align:center;">
+              <div
+                style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.04em;margin-bottom:16px;">
+                AIR QUALITY (AQI)</div>
+              <div style="font-size:48px;font-weight:700;font-family:'Syne',sans-serif;color:var(--green);"
+                id="envAqiVal">—</div>
+              <div style="font-size:13px;color:var(--sub);margin-top:8px;" id="envAqiStatus">Good: 0-50</div>
+            </div>
+          </div>
+          <div class="glass" style="padding:24px;">
+            <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:12px;">Weekly Averages</div>
+            <div style="display:flex;gap:40px;">
+              <div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Average Temp</div>
+                <div class="font-mono" style="font-size:18px;color:var(--text);" id="envAvgTemp">—</div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Average CO₂</div>
+                <div class="font-mono" style="font-size:18px;color:var(--text);" id="envAvgCo2">—</div>
+              </div>
+            </div>
+          </div>
+        </div><!-- /view-environment -->
 
-// ══════════════════════════════════════════════
-// POMODORO
-// ══════════════════════════════════════════════
-const POM_WORK  = 25 * 60;
-const POM_BREAK = 5 * 60;
-let pomSecs     = POM_WORK;
-let pomRunning  = false;
-let pomInterval = null;
-let pomIsWork   = true;
-let pomSession  = 1;
-const CIRC      = 2 * Math.PI * 52;   // 326.7
+        <!-- ── SETTINGS VIEW ── -->
+        <div id="view-settings" style="display:none;flex-direction:column;gap:20px;">
+          
+          <!-- Appearance -->
+          <div class="glass" style="padding:24px;">
+            <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:12px;">Appearance</div>
+            <div
+              style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:16px;">
+              <div>
+                <div style="font-size:14px;font-weight:500;">Light Mode</div>
+                <div style="font-size:12px;color:var(--sub);margin-top:2px;">Switch to a brighter interface</div>
+              </div>
+              <button id="themeToggleBtn" onclick="toggleTheme()"
+                style="padding:8px 16px;border-radius:12px;background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.3);color:var(--green);font-size:13px;cursor:pointer;font-family:'DM Mono',monospace;transition:all .2s;"
+                onmouseover="this.style.background='rgba(74,222,128,.25)'"
+                onmouseout="this.style.background='rgba(74,222,128,.15)'">
+                Enable Light Mode
+              </button>
+            </div>
+          </div>
 
-function pomRender() {
-  const total = pomIsWork ? POM_WORK : POM_BREAK;
-  const frac  = pomSecs / total;
-  const offset = CIRC * (1 - frac);
+          <!-- Focus & Timer -->
+          <div class="glass" style="padding:24px;">
+            <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:16px;">Focus & Timer</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+              <div>
+                <label style="font-size:13px;color:var(--muted);margin-bottom:6px;display:block;">Focus Duration (mins)</label>
+                <input type="number" id="setFocusTime" value="25" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-family:'DM Mono',monospace;" onchange="saveSettings()">
+              </div>
+              <div>
+                <label style="font-size:13px;color:var(--muted);margin-bottom:6px;display:block;">Break Duration (mins)</label>
+                <input type="number" id="setBreakTime" value="5" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-family:'DM Mono',monospace;" onchange="saveSettings()">
+              </div>
+              <div style="grid-column: span 2;">
+                <label style="font-size:13px;color:var(--muted);margin-bottom:6px;display:block;">Daily Focus Goal (hours)</label>
+                <input type="number" id="setDailyGoal" value="8" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-family:'DM Mono',monospace;" onchange="saveSettings()">
+              </div>
+            </div>
+          </div>
 
-  document.getElementById('pomTimer').textContent =
-    `${String(Math.floor(pomSecs/60)).padStart(2,'0')}:${String(pomSecs%60).padStart(2,'0')}`;
-  document.getElementById('pomMode').textContent  = pomIsWork ? 'FOCUS' : 'BREAK';
-  document.getElementById('pomLabel').textContent = pomIsWork ? 'Focus Time' : 'Break Time';
-  document.getElementById('pomSession').textContent = `${pomSession} / 4`;
-  document.getElementById('pomRing').style.strokeDashoffset = offset;
-  document.getElementById('pomRing').style.stroke = pomIsWork ? '#4ade80' : '#60a5fa';
-}
+          <!-- Posture Strictness -->
+          <div class="glass" style="padding:24px;">
+            <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:16px;">Posture Monitor</div>
+            <div>
+              <label style="font-size:13px;color:var(--muted);margin-bottom:6px;display:block;">Strictness Level</label>
+              <select id="setPostureStrictness" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-family:'Inter',sans-serif;appearance:none;cursor:pointer;" onchange="saveSettings()">
+                <option value="relaxed">Relaxed (Warn after 15s)</option>
+                <option value="standard" selected>Standard (Warn after 10s)</option>
+                <option value="strict">Strict (Warn after 5s)</option>
+              </select>
+            </div>
+          </div>
 
-function pomCtrl(action) {
-  if (action === 'start') {
-    if (pomRunning) {
-      clearInterval(pomInterval);
-      pomRunning = false;
-    } else {
-      pomRunning = true;
-      pomInterval = setInterval(() => {
-        pomSecs--;
-        if (pomSecs < 0) {
-          if (pomIsWork) {
-            pomIsWork = false; pomSecs = POM_BREAK;
-          } else {
-            pomIsWork = true;  pomSecs = POM_WORK;
-            pomSession = pomSession < 4 ? pomSession + 1 : 1;
-          }
-        }
-        pomRender();
+          <!-- Environment Thresholds -->
+          <div class="glass" style="padding:24px;">
+            <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:16px;">Environment Thresholds</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+              <div>
+                <label style="font-size:13px;color:var(--muted);margin-bottom:6px;display:block;">Max CO₂ (ppm)</label>
+                <input type="number" id="setCo2Max" value="800" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-family:'DM Mono',monospace;" onchange="saveSettings()">
+              </div>
+              <div>
+                <label style="font-size:13px;color:var(--muted);margin-bottom:6px;display:block;">Target Temp (°C)</label>
+                <input type="number" id="setTargetTemp" value="22" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-family:'DM Mono',monospace;" onchange="saveSettings()">
+              </div>
+            </div>
+          </div>
+
+          <!-- Hardware Connection -->
+          <div class="glass" style="padding:24px;">
+            <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:16px;">Hardware Integration</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:16px;">
+              <div>
+                <div style="font-size:14px;font-weight:500;">Arduino Bridge</div>
+                <div style="font-size:12px;color:var(--sub);margin-top:2px;">COM Port Status: <span style="color:var(--green);" id="comPortStatus">Simulated</span></div>
+              </div>
+              <button id="reconnectBtn" onclick="reconnectHardware()" style="padding:8px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:13px;cursor:pointer;transition:all .2s;" onmouseover="this.style.borderColor='var(--green)'" onmouseout="this.style.borderColor='var(--border)'">
+                Reconnect
+              </button>
+            </div>
+          </div>
+
+        </div><!-- /view-settings -->
+
+        <!-- Tip bar -->
+        <div class="glass"
+          style="padding:12px 20px;display:flex;align-items:center;gap:10px;border-color:rgba(74,222,128,.12);">
+          <span style="font-size:14px;">🌿</span>
+          <span id="tipText" style="font-size:13px;color:var(--sub);">Small steps every day lead to big changes. Stay
+            consistent!</span>
+        </div>
+
+    </main>
+  </div>
+
+  <!-- ══════════════ SPIN keyframe ══════════════ -->
+  <style>
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+
+  <script>
+    // ══════════════════════════════════════════════
+    // CONFIG & NAVIGATION
+    // ══════════════════════════════════════════════
+    const API_BASE = 'http://localhost:8000/api/v1';
+    const REFRESH_MS = 5000;   // 5-second dashboard refresh
+    let DAILY_GOAL_H = localStorage.getItem('dailyGoal') ? parseFloat(localStorage.getItem('dailyGoal')) : 8;
+
+    function switchView(viewName) {
+      // Hide all views
+      document.getElementById('view-dashboard').style.display = 'none';
+      document.getElementById('view-environment').style.display = 'none';
+      document.getElementById('view-settings').style.display = 'none';
+
+      // Remove active class from navs
+      document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
+
+      if (viewName === 'dashboard') {
+        document.getElementById('view-dashboard').style.display = 'flex';
+        document.getElementById('nav-dashboard').classList.add('active');
+        document.getElementById('pageTitle').textContent = 'Dashboard';
+        document.getElementById('pageSubtitle').textContent = 'Welcome back! Stay focused and keep growing.';
+      } else if (viewName === 'environment') {
+        document.getElementById('view-environment').style.display = 'flex';
+        document.getElementById('nav-environment').classList.add('active');
+        document.getElementById('pageTitle').textContent = 'Environment';
+        document.getElementById('pageSubtitle').textContent = 'Monitor your workspace health for optimal focus.';
+      } else if (viewName === 'settings') {
+        document.getElementById('view-settings').style.display = 'flex';
+        document.getElementById('nav-settings').classList.add('active');
+        document.getElementById('pageTitle').textContent = 'Settings';
+        document.getElementById('pageSubtitle').textContent = 'Customise your DeskBuddy experience.';
+      }
+    }
+
+    let isLightMode = localStorage.getItem('theme') === 'light';
+    function applyTheme() {
+      const btn = document.getElementById('themeToggleBtn');
+      if (isLightMode) {
+        document.body.classList.add('light-mode');
+        if (btn) btn.textContent = 'Enable Dark Mode';
+      } else {
+        document.body.classList.remove('light-mode');
+        if (btn) btn.textContent = 'Enable Light Mode';
+      }
+    }
+    function toggleTheme() {
+      isLightMode = !isLightMode;
+      localStorage.setItem('theme', isLightMode ? 'light' : 'dark');
+      applyTheme();
+    }
+    applyTheme();
+
+    function saveSettings() {
+      const focusTime = document.getElementById('setFocusTime').value;
+      const breakTime = document.getElementById('setBreakTime').value;
+      const dailyGoal = document.getElementById('setDailyGoal').value;
+      const postureStr = document.getElementById('setPostureStrictness').value;
+      const co2Max = document.getElementById('setCo2Max').value;
+      const targetTemp = document.getElementById('setTargetTemp').value;
+
+      localStorage.setItem('focusTime', focusTime);
+      localStorage.setItem('breakTime', breakTime);
+      localStorage.setItem('dailyGoal', dailyGoal);
+      localStorage.setItem('postureStrictness', postureStr);
+      localStorage.setItem('co2Max', co2Max);
+      localStorage.setItem('targetTemp', targetTemp);
+
+      // Apply to running variables
+      POM_WORK = focusTime * 60;
+      POM_BREAK = breakTime * 60;
+      DAILY_GOAL_H = parseFloat(dailyGoal);
+      if(!pomRunning && pomIsWork) { pomSecs = POM_WORK; pomRender(); }
+      
+      // Update environment optimal texts
+      const envTempStatus = document.getElementById('envTempStatus');
+      if (envTempStatus) envTempStatus.textContent = `Target: ${targetTemp}°C`;
+      const envCo2Status = document.getElementById('envCo2Status');
+      if (envCo2Status) envCo2Status.textContent = `Target: < ${co2Max} ppm`;
+    }
+
+    function initSettings() {
+      if(localStorage.getItem('focusTime')) document.getElementById('setFocusTime').value = localStorage.getItem('focusTime');
+      if(localStorage.getItem('breakTime')) document.getElementById('setBreakTime').value = localStorage.getItem('breakTime');
+      if(localStorage.getItem('dailyGoal')) document.getElementById('setDailyGoal').value = localStorage.getItem('dailyGoal');
+      if(localStorage.getItem('postureStrictness')) document.getElementById('setPostureStrictness').value = localStorage.getItem('postureStrictness');
+      if(localStorage.getItem('co2Max')) document.getElementById('setCo2Max').value = localStorage.getItem('co2Max');
+      if(localStorage.getItem('targetTemp')) document.getElementById('setTargetTemp').value = localStorage.getItem('targetTemp');
+      
+      const targetTemp = document.getElementById('setTargetTemp').value;
+      const co2Max = document.getElementById('setCo2Max').value;
+      const envTempStatus = document.getElementById('envTempStatus');
+      if (envTempStatus) envTempStatus.textContent = `Target: ${targetTemp}°C`;
+      const envCo2Status = document.getElementById('envCo2Status');
+      if (envCo2Status) envCo2Status.textContent = `Target: < ${co2Max} ppm`;
+    }
+    
+    // Call initSettings when DOM is ready
+    window.addEventListener('DOMContentLoaded', initSettings);
+
+    function reconnectHardware() {
+      const btn = document.getElementById('reconnectBtn');
+      const prevText = btn.textContent;
+      btn.textContent = 'Connecting...';
+      setTimeout(() => {
+        btn.textContent = prevText;
+        alert("Hardware bridge logic will be implemented here!");
       }, 1000);
     }
-  } else if (action === 'reset') {
-    clearInterval(pomInterval);
-    pomRunning = false; pomIsWork = true;
-    pomSecs = POM_WORK;  pomSession = 1;
+
+    const TIPS = [
+      "Small steps every day lead to big changes. Stay consistent!",
+      "Open a window for 5 min every hour — CO₂ directly impacts focus.",
+      "The Pomodoro technique: 25 min focus, 5 min break. Repeat.",
+      "Keep your monitor at arm's length and slightly below eye level.",
+      "Hydrate! Even mild dehydration can reduce focus by 15%.",
+      "Natural light boosts mood and alertness — sit near a window.",
+      "Take a 2-minute micro-break to stretch your wrists and shoulders.",
+    ];
+    let tipIdx = 0;
+
+    // ══════════════════════════════════════════════
+    // CLOCK
+    // ══════════════════════════════════════════════
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent =
+        now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      document.getElementById('datestr').textContent =
+        now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // ══════════════════════════════════════════════
+    // POMODORO
+    // ══════════════════════════════════════════════
+    let POM_WORK = localStorage.getItem('focusTime') ? parseInt(localStorage.getItem('focusTime')) * 60 : 25 * 60;
+    let POM_BREAK = localStorage.getItem('breakTime') ? parseInt(localStorage.getItem('breakTime')) * 60 : 5 * 60;
+    let pomSecs = POM_WORK;
+    let pomRunning = false;
+    let pomInterval = null;
+    let pomIsWork = true;
+    let pomSession = 1;
+    const CIRC = 2 * Math.PI * 52;   // 326.7
+
+    function pomRender() {
+      const total = pomIsWork ? POM_WORK : POM_BREAK;
+      const frac = pomSecs / total;
+      const offset = CIRC * (1 - frac);
+
+      document.getElementById('pomTimer').textContent =
+        `${String(Math.floor(pomSecs / 60)).padStart(2, '0')}:${String(pomSecs % 60).padStart(2, '0')}`;
+      document.getElementById('pomMode').textContent = pomIsWork ? 'FOCUS' : 'BREAK';
+      document.getElementById('pomLabel').textContent = pomIsWork ? 'Focus Time' : 'Break Time';
+      document.getElementById('pomSession').textContent = `${pomSession} / 4`;
+      document.getElementById('pomRing').style.strokeDashoffset = offset;
+      document.getElementById('pomRing').style.stroke = pomIsWork ? '#4ade80' : '#60a5fa';
+    }
+
+    function pomCtrl(action) {
+      if (action === 'start') {
+        if (pomRunning) {
+          clearInterval(pomInterval);
+          pomRunning = false;
+        } else {
+          pomRunning = true;
+          pomInterval = setInterval(() => {
+            pomSecs--;
+            if (pomSecs < 0) {
+              if (pomIsWork) {
+                pomIsWork = false; pomSecs = POM_BREAK;
+              } else {
+                pomIsWork = true; pomSecs = POM_WORK;
+                pomSession = pomSession < 4 ? pomSession + 1 : 1;
+              }
+            }
+            pomRender();
+          }, 1000);
+        }
+      } else if (action === 'reset') {
+        clearInterval(pomInterval);
+        pomRunning = false; pomIsWork = true;
+        pomSecs = POM_WORK; pomSession = 1;
+        pomRender();
+      }
+    }
     pomRender();
-  }
-}
-pomRender();
 
-// ══════════════════════════════════════════════
-// CHART — created ONCE, updated in-place
-// ══════════════════════════════════════════════
-const focusCtx = document.getElementById('focusChart').getContext('2d');
-const focusChart = new Chart(focusCtx, {
-  type: 'line',
-  data: {
-    labels: [],
-    datasets: [
-      {
-        label: 'Focus (min)',
-        data: [], borderColor: '#4ade80', backgroundColor: 'rgba(74,222,128,.08)',
-        borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#4ade80',
-        tension: .4, fill: true,
+    // ══════════════════════════════════════════════
+    // CHART — created ONCE, updated in-place
+    // ══════════════════════════════════════════════
+    const focusCtx = document.getElementById('focusChart').getContext('2d');
+    const focusChart = new Chart(focusCtx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'Focus (min)',
+            data: [], borderColor: '#4ade80', backgroundColor: 'rgba(74,222,128,.08)',
+            borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#4ade80',
+            tension: .4, fill: true,
+          },
+          {
+            label: 'Break (min)',
+            data: [], borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,.06)',
+            borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#60a5fa',
+            tension: .4, fill: true,
+          },
+          {
+            label: 'Distractions',
+            data: [], borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,.04)',
+            borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#fbbf24',
+            tension: .4, fill: true,
+          },
+        ],
       },
-      {
-        label: 'Break (min)',
-        data: [], borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,.06)',
-        borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#60a5fa',
-        tension: .4, fill: true,
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        animation: { duration: 600 },
+        plugins: {
+          legend: {
+            labels: { color: '#a1a1aa', boxWidth: 10, font: { family: 'DM Mono', size: 10 } },
+          },
+          tooltip: {
+            backgroundColor: 'rgba(24,24,27,.95)',
+            borderColor: 'rgba(74,222,128,.3)', borderWidth: 1,
+            titleColor: '#4ade80', bodyColor: '#a1a1aa',
+            bodyFont: { family: 'DM Mono' },
+          },
+        },
+        scales: {
+          x: { ticks: { color: '#52525b', font: { family: 'DM Mono', size: 10 } }, grid: { color: 'rgba(63,63,70,.3)' } },
+          y: { ticks: { color: '#52525b', font: { family: 'DM Mono', size: 10 } }, grid: { color: 'rgba(63,63,70,.3)' } },
+        },
       },
-      {
-        label: 'Distractions',
-        data: [], borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,.04)',
-        borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#fbbf24',
-        tension: .4, fill: true,
-      },
-    ],
-  },
-  options: {
-    responsive: true, maintainAspectRatio: false,
-    animation: { duration: 600 },
-    plugins: {
-      legend: {
-        labels: { color: '#a1a1aa', boxWidth: 10, font: { family: 'DM Mono', size: 10 } },
-      },
-      tooltip: {
-        backgroundColor: 'rgba(24,24,27,.95)',
-        borderColor: 'rgba(74,222,128,.3)', borderWidth: 1,
-        titleColor: '#4ade80', bodyColor: '#a1a1aa',
-        bodyFont: { family: 'DM Mono' },
-      },
-    },
-    scales: {
-      x: { ticks: { color: '#52525b', font: { family: 'DM Mono', size: 10 } }, grid: { color: 'rgba(63,63,70,.3)' } },
-      y: { ticks: { color: '#52525b', font: { family: 'DM Mono', size: 10 } }, grid: { color: 'rgba(63,63,70,.3)' } },
-    },
-  },
-});
+    });
 
-// Weekly bar — created ONCE
-const weekCtx = document.getElementById('weekChart').getContext('2d');
-const weekChart = new Chart(weekCtx, {
-  type: 'bar',
-  data: {
-    labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-    datasets: [{
-      label: 'Focus Hours',
-      data: [2.4, 3.1, 4.0, 5.2, 3.6, 2.8, 0],
-      backgroundColor: 'rgba(74,222,128,.25)',
-      borderColor: '#4ade80',
-      borderWidth: 1.5, borderRadius: 6,
-      hoverBackgroundColor: 'rgba(74,222,128,.4)',
-    }],
-  },
-  options: {
-    responsive: true, maintainAspectRatio: false,
-    animation: { duration: 600 },
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { ticks: { color: '#52525b', font: { family: 'DM Mono', size: 10 } }, grid: { display: false } },
-      y: { ticks: { color: '#52525b', font: { family: 'DM Mono', size: 10 } }, grid: { color: 'rgba(63,63,70,.3)' } },
-    },
-  },
-});
+    // Weekly bar — created ONCE
+    const weekCtx = document.getElementById('weekChart').getContext('2d');
+    const weekChart = new Chart(weekCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [{
+          label: 'Focus Hours',
+          data: [2.4, 3.1, 4.0, 5.2, 3.6, 2.8, 0],
+          backgroundColor: 'rgba(74,222,128,.25)',
+          borderColor: '#4ade80',
+          borderWidth: 1.5, borderRadius: 6,
+          hoverBackgroundColor: 'rgba(74,222,128,.4)',
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        animation: { duration: 600 },
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#52525b', font: { family: 'DM Mono', size: 10 } }, grid: { display: false } },
+          y: { ticks: { color: '#52525b', font: { family: 'DM Mono', size: 10 } }, grid: { color: 'rgba(63,63,70,.3)' } },
+        },
+      },
+    });
 
-// ══════════════════════════════════════════════
-// LIVE FEED
-// ══════════════════════════════════════════════
-const FEED_ICONS = { Good: '😊', Warning: '⚠️', Poor: '🚨', session: '🍅', env: '🌿' };
+    // ══════════════════════════════════════════════
+    // LIVE FEED
+    // ══════════════════════════════════════════════
+    const FEED_ICONS = { Good: '😊', Warning: '⚠️', Poor: '🚨', session: '🍅', env: '🌿' };
 
-function addFeed(icon, msg, sub='') {
-  const list = document.getElementById('feedList');
-  const now  = new Date().toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
-  const item = document.createElement('div');
-  item.className = 'feed-item';
-  item.innerHTML = `
+    function addFeed(icon, msg, sub = '') {
+      const list = document.getElementById('feedList');
+      const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      const item = document.createElement('div');
+      item.className = 'feed-item';
+      item.innerHTML = `
     <span style="font-size:18px;flex-shrink:0;">${icon}</span>
     <div style="flex:1;min-width:0;">
       <div style="font-size:12.5px;font-weight:500;">${msg}</div>
@@ -615,135 +1045,158 @@ function addFeed(icon, msg, sub='') {
     </div>
     <div class="font-mono" style="font-size:10px;color:var(--muted);flex-shrink:0;">${now}</div>
   `;
-  list.prepend(item);
-  while (list.children.length > 6) list.removeChild(list.lastChild);
-}
-
-// ══════════════════════════════════════════════
-// DATA FETCH & UI UPDATE
-// ══════════════════════════════════════════════
-let lastPosture = null;
-let lastFocusScore = null;
-
-async function fetchData() {
-  try {
-    const res  = await fetch(`${API_BASE}/dashboard`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-
-    const s   = data.latest_session;
-    const c   = data.chart_data || [];
-    const st  = data.weekly_stats || {};
-
-    // ─── Posture ───
-    const pIcon = { Good: '😊', Warning: '⚠️', Poor: '😰' };
-    const pMsg  = {
-      Good:    'You are sitting in a healthy posture.',
-      Warning: 'Consider adjusting your sitting position.',
-      Poor:    'Please correct your posture — lean back and sit straight!',
-    };
-    document.getElementById('postureIcon').textContent   = pIcon[s.posture_status] || '😊';
-    document.getElementById('postureStatus').textContent = s.posture_status;
-    document.getElementById('postureMsg').textContent    = pMsg[s.posture_status] || '';
-    const badge = document.getElementById('postureBadge');
-    badge.textContent = `Score: ${s.posture_score}`;
-    badge.className   = `pill badge-${s.posture_status.toLowerCase()}`;
-
-    if (lastPosture && lastPosture !== s.posture_status) {
-      addFeed(pIcon[s.posture_status], `Posture changed to ${s.posture_status}`, s.session_label);
-    }
-    lastPosture = s.posture_status;
-
-    // ─── Focus score / total ───
-    const focusPct = Math.round((s.focus_score / 100) * DAILY_GOAL_H * 60);
-    const focusH   = Math.floor(focusPct / 60);
-    const focusM   = focusPct % 60;
-    document.getElementById('totalFocus').textContent  = `${focusH}h ${focusM}m`;
-    document.getElementById('sessionCount').textContent = `${st.total_sessions || 0}`;
-    document.getElementById('focusPct').textContent     = `${s.focus_score}%`;
-    document.getElementById('focusBar').style.width    = `${Math.min(s.focus_score, 100)}%`;
-
-    if (lastFocusScore && Math.abs(lastFocusScore - s.focus_score) > 5) {
-      addFeed('🍅', `Focus score updated to ${s.focus_score}%`, s.session_label);
-    }
-    lastFocusScore = s.focus_score;
-
-    // ─── Environment ───
-    document.getElementById('tempVal').textContent = `${s.temperature_c}°C`;
-    document.getElementById('humVal').textContent  = `${s.humidity_pct}%`;
-    document.getElementById('co2Val').textContent  = `${s.co2_ppm} ppm`;
-    document.getElementById('aqiVal').textContent  = `${s.aqi}`;
-
-    const tempPct = Math.min(((s.temperature_c - 15) / 20) * 100, 100);
-    const co2Pct  = Math.min(((s.co2_ppm - 400) / 1000) * 100, 100);
-    document.getElementById('tempBarFill').style.width = `${tempPct}%`;
-    document.getElementById('co2BarFill').style.width  = `${co2Pct}%`;
-    document.getElementById('co2BarFill').style.background =
-      s.co2_ppm > 1000 ? 'linear-gradient(90deg,var(--amber),var(--red))' :
-      s.co2_ppm > 800  ? 'linear-gradient(90deg,var(--green),var(--amber))' :
-                         'linear-gradient(90deg,var(--green2),var(--green))';
-
-    if (s.co2_ppm > 1000) {
-      addFeed('🌫️', 'High CO₂ detected — open a window!', `${s.co2_ppm}ppm`);
-    }
-    if (s.temperature_c > 27) {
-      addFeed('🌡️', 'Room temperature is high', `${s.temperature_c}°C`);
+      list.prepend(item);
+      while (list.children.length > 6) list.removeChild(list.lastChild);
     }
 
-    // ─── Chart update (NO recreation) ───
-    if (c.length > 0) {
-      focusChart.data.labels                    = c.map(r => r.hour_label);
-      focusChart.data.datasets[0].data          = c.map(r => r.focus_minutes);
-      focusChart.data.datasets[1].data          = c.map(r => r.break_minutes);
-      focusChart.data.datasets[2].data          = c.map(r => r.distractions);
-      focusChart.update('none');   // no animation on data refresh = no CPU spike
+    // ══════════════════════════════════════════════
+    // DATA FETCH & UI UPDATE
+    // ══════════════════════════════════════════════
+    let lastPosture = null;
+    let lastFocusScore = null;
+
+    async function fetchData() {
+      try {
+        const res = await fetch(`${API_BASE}/dashboard`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        const s = data.latest_session;
+        const c = data.chart_data || [];
+        const st = data.weekly_stats || {};
+
+        // ─── Posture ───
+        const pIcon = { Good: '😊', Warning: '⚠️', Poor: '😰' };
+        const pMsg = {
+          Good: 'You are sitting in a healthy posture.',
+          Warning: 'Consider adjusting your sitting position.',
+          Poor: 'Please correct your posture — lean back and sit straight!',
+        };
+        document.getElementById('postureIcon').textContent = pIcon[s.posture_status] || '😊';
+        document.getElementById('postureStatus').textContent = s.posture_status;
+        document.getElementById('postureMsg').textContent = pMsg[s.posture_status] || '';
+        const badge = document.getElementById('postureBadge');
+        badge.textContent = `Score: ${s.posture_score}`;
+        badge.className = `pill badge-${s.posture_status.toLowerCase()}`;
+
+        if (lastPosture && lastPosture !== s.posture_status) {
+          addFeed(pIcon[s.posture_status], `Posture changed to ${s.posture_status}`, s.session_label);
+        }
+        lastPosture = s.posture_status;
+
+        // ─── Focus score / total ───
+        const focusPct = Math.round((s.focus_score / 100) * DAILY_GOAL_H * 60);
+        const focusH = Math.floor(focusPct / 60);
+        const focusM = focusPct % 60;
+        document.getElementById('totalFocus').textContent = `${focusH}h ${focusM}m`;
+        document.getElementById('sessionCount').textContent = `${st.total_sessions || 0}`;
+        document.getElementById('focusPct').textContent = `${s.focus_score}%`;
+        document.getElementById('focusBar').style.width = `${Math.min(s.focus_score, 100)}%`;
+
+        if (lastFocusScore && Math.abs(lastFocusScore - s.focus_score) > 5) {
+          addFeed('🍅', `Focus score updated to ${s.focus_score}%`, s.session_label);
+        }
+        lastFocusScore = s.focus_score;
+
+        // ─── Environment ───
+        document.getElementById('tempVal').textContent = `${s.temperature_c}°C`;
+        document.getElementById('humVal').textContent = `${s.humidity_pct}%`;
+        document.getElementById('co2Val').textContent = `${s.co2_ppm} ppm`;
+        document.getElementById('aqiVal').textContent = `${s.aqi}`;
+
+        const tempPct = Math.min(((s.temperature_c - 15) / 20) * 100, 100);
+        const co2Pct = Math.min(((s.co2_ppm - 400) / 1000) * 100, 100);
+        document.getElementById('tempBarFill').style.width = `${tempPct}%`;
+        document.getElementById('co2BarFill').style.width = `${co2Pct}%`;
+        document.getElementById('co2BarFill').style.background =
+          s.co2_ppm > 1000 ? 'linear-gradient(90deg,var(--amber),var(--red))' :
+            s.co2_ppm > 800 ? 'linear-gradient(90deg,var(--green),var(--amber))' :
+              'linear-gradient(90deg,var(--green2),var(--green))';
+
+        if (s.co2_ppm > 1000) {
+          addFeed('🌫️', 'High CO₂ detected — open a window!', `${s.co2_ppm}ppm`);
+        }
+        if (s.temperature_c > 27) {
+          addFeed('🌡️', 'Room temperature is high', `${s.temperature_c}°C`);
+        }
+
+        // ─── Chart update (NO recreation) ───
+        if (c.length > 0) {
+          focusChart.data.labels = c.map(r => r.hour_label);
+          focusChart.data.datasets[0].data = c.map(r => r.focus_minutes);
+          focusChart.data.datasets[1].data = c.map(r => r.break_minutes);
+          focusChart.data.datasets[2].data = c.map(r => r.distractions);
+          focusChart.update('none');   // no animation on data refresh = no CPU spike
+        }
+
+        // ─── Stats mini ───
+        document.getElementById('statTotal').textContent = st.total_sessions || '—';
+        document.getElementById('statAvgFocus').textContent = st.avg_focus ? `${Math.round(st.avg_focus)}%` : '—';
+        document.getElementById('statAvgCO2').textContent = st.avg_co2 ? `${Math.round(st.avg_co2)}` : '—';
+
+        // ─── AI Insight ───
+        document.getElementById('aiInsight').textContent = data.ai_insight || 'No insight available yet.';
+        const age = data.insight_cache_age_seconds;
+        document.getElementById('cacheAge').textContent =
+          age < 10 ? 'Just generated' :
+            age < 60 ? `${age}s ago` :
+              `${Math.floor(age / 60)}m ago (cached)`;
+
+        // ─── Feed: env comfortable ───
+        if (s.co2_ppm <= 900 && s.temperature_c <= 26) {
+          addFeed('🌿', 'Environment is comfortable', `${s.temperature_c}°C / ${s.humidity_pct}%`);
+        }
+
+        // ─── Environment View Updates ───
+        document.getElementById('envTempVal').textContent = `${s.temperature_c}°C`;
+        document.getElementById('envHumVal').textContent = `${s.humidity_pct}%`;
+        document.getElementById('envCo2Val').textContent = `${s.co2_ppm} ppm`;
+        document.getElementById('envAqiVal').textContent = `${s.aqi}`;
+
+        // Update colors based on thresholds
+        const envCo2El = document.getElementById('envCo2Val');
+        if (s.co2_ppm > 1000) {
+          envCo2El.style.color = 'var(--red)';
+          document.getElementById('envCo2Status').textContent = 'Poor: Open a window!';
+        } else if (s.co2_ppm > 800) {
+          envCo2El.style.color = 'var(--amber)';
+          document.getElementById('envCo2Status').textContent = 'Fair: Consider ventilation';
+        } else {
+          envCo2El.style.color = 'var(--green)';
+          document.getElementById('envCo2Status').textContent = 'Optimal: < 800 ppm';
+        }
+
+        document.getElementById('envAvgTemp').textContent = st.avg_temp ? `${st.avg_temp.toFixed(1)}°C` : '—';
+        document.getElementById('envAvgCo2').textContent = st.avg_co2 ? `${Math.round(st.avg_co2)} ppm` : '—';
+
+      } catch (err) {
+        console.warn('[DeskBuddy] Fetch error:', err);
+        document.getElementById('aiInsight').textContent =
+          '⚠️ Cannot reach backend. Make sure backend.py is running on port 8000.';
+      }
     }
 
-    // ─── Stats mini ───
-    document.getElementById('statTotal').textContent    = st.total_sessions || '—';
-    document.getElementById('statAvgFocus').textContent = st.avg_focus ? `${Math.round(st.avg_focus)}%` : '—';
-    document.getElementById('statAvgCO2').textContent   = st.avg_co2 ? `${Math.round(st.avg_co2)}` : '—';
+    // ══════════════════════════════════════════════
+    // ROTATING TIP
+    // ══════════════════════════════════════════════
+    setInterval(() => {
+      tipIdx = (tipIdx + 1) % TIPS.length;
+      const el = document.getElementById('tipText');
+      el.style.opacity = '0';
+      setTimeout(() => { el.textContent = TIPS[tipIdx]; el.style.opacity = '1'; }, 400);
+    }, 30000);
+    document.getElementById('tipText').style.transition = 'opacity .4s';
 
-    // ─── AI Insight ───
-    document.getElementById('aiInsight').textContent = data.ai_insight || 'No insight available yet.';
-    const age = data.insight_cache_age_seconds;
-    document.getElementById('cacheAge').textContent =
-      age < 10 ? 'Just generated' :
-      age < 60 ? `${age}s ago` :
-      `${Math.floor(age/60)}m ago (cached)`;
+    // ══════════════════════════════════════════════
+    // BOOTSTRAP
+    // ══════════════════════════════════════════════
+    fetchData();
+    setInterval(fetchData, REFRESH_MS);
 
-    // ─── Feed: env comfortable ───
-    if (s.co2_ppm <= 900 && s.temperature_c <= 26) {
-      addFeed('🌿', 'Environment is comfortable', `${s.temperature_c}°C / ${s.humidity_pct}%`);
-    }
-
-  } catch (err) {
-    console.warn('[DeskBuddy] Fetch error:', err);
-    document.getElementById('aiInsight').textContent =
-      '⚠️ Cannot reach backend. Make sure backend.py is running on port 8000.';
-  }
-}
-
-// ══════════════════════════════════════════════
-// ROTATING TIP
-// ══════════════════════════════════════════════
-setInterval(() => {
-  tipIdx = (tipIdx + 1) % TIPS.length;
-  const el = document.getElementById('tipText');
-  el.style.opacity = '0';
-  setTimeout(() => { el.textContent = TIPS[tipIdx]; el.style.opacity = '1'; }, 400);
-}, 30000);
-document.getElementById('tipText').style.transition = 'opacity .4s';
-
-// ══════════════════════════════════════════════
-// BOOTSTRAP
-// ══════════════════════════════════════════════
-fetchData();
-setInterval(fetchData, REFRESH_MS);
-
-// Initial feed
-addFeed('🍅', 'Focus session started', 'DeskBuddy is now tracking your session');
-addFeed('🌿', 'Environment check complete', 'All sensors online');
-</script>
+    // Initial feed
+    addFeed('🍅', 'Focus session started', 'DeskBuddy is now tracking your session');
+    addFeed('🌿', 'Environment check complete', 'All sensors online');
+  </script>
 </body>
+
 </html>
