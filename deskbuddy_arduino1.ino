@@ -1,9 +1,15 @@
 #include <Adafruit_LiquidCrystal.h>
 #include <Adafruit_NeoPixel.h>
 
-Adafruit_LiquidCrystal lcd(0);
+Adafruit_LiquidCrystal lcd(0); // I2C address 0 for Adafruit backpack
 
+// ══════════════════════════════════════════════
+// PIN DEFINITIONS
+// ══════════════════════════════════════════════
 
+// ══════════════════════════════════════════════
+// KODDA LED STRIPS VAR ONU LED LE EVEZLEMEK LAZIMDIR
+// ══════════════════════════════════════════════
 const byte trigPin = 9;
 const byte echoPin = 10;
 const byte buzzerPin = 8;
@@ -16,39 +22,57 @@ const byte ledPin = 3;
 const byte ledCount = 8; 
 Adafruit_NeoPixel strip(ledCount, ledPin, NEO_GRB + NEO_KHZ800);
 
-int baselineDistance = 0; 
-int currentDistance = 0;
-
-const int darkThreshold = 300; 
-const int co2Threshold = 1200; 
-const byte hotThreshold = 28; 
-
+// ══════════════════════════════════════════════
+// GLOBAL STATE
+// ══════════════════════════════════════════════
+int baselineDistance = 50; 
 unsigned long previousMillis = 0;
-byte timeLeft = 25; 
-bool isBreakTime = false;
-unsigned long postureTimerStart = 0;
-bool postureTimerActive = false;
-const unsigned long gracePeriod = 7000; 
+const long interval = 1000; // Send data every 1 second
 
+// Custom LCD characters
+byte smiley[8] = {
+  0b00000, 0b01010, 0b01010, 0b00000, 0b10001, 0b01110, 0b00000, 0b00000
+};
+byte frown[8] = {
+  0b00000, 0b01010, 0b01010, 0b00000, 0b00000, 0b01110, 0b10001, 0b00000
+};
+
+String currentStatus = "Good!";
+bool isGoodPosture = true;
+
+// ══════════════════════════════════════════════
+// SETUP
+// ══════════════════════════════════════════════
 void setup() {
+  Serial.begin(9600);
+  
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
   pinMode(buzzerPin, OUTPUT);
   pinMode(buttonPin, INPUT_PULLUP); 
-  
 
-  
+  // Initialize LCD
   lcd.begin(16, 2);
-  strip.begin();
-  strip.show(); 
-  strip.setBrightness(50); 
+  lcd.createChar(0, smiley);
+  lcd.createChar(1, frown);
   
+  // Initialize LEDs
+  strip.begin();
+  strip.setBrightness(50); 
+  setGlow(0, 50, 0); // Start green
+  
+  // Boot screen
   lcd.setCursor(0, 0); 
-  lcd.print("Sys Ready!      "); 
+  lcd.print("DeskBuddy V2.0  "); 
   lcd.setCursor(0, 1); 
-  lcd.print("Press Button... ");
+  lcd.print("Ready to connect");
+  delay(1500);
+  lcd.clear();
 }
 
+// ══════════════════════════════════════════════
+// SENSOR FUNCTIONS
+// ══════════════════════════════════════════════
 int measureDistance() {
   digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
@@ -58,8 +82,19 @@ int measureDistance() {
   
   long duration = pulseIn(echoPin, HIGH, 30000); 
   if (duration == 0) return 0;
-
   return (duration * 34) / 2000; 
+}
+
+float measureTemperature() {
+  int rawVal = analogRead(tempPin);
+  if (rawVal == 0) return 22.0; // Fail-safe
+  float R1 = 10000.0;
+  float c1 = 1.009249522e-03, c2 = 2.378405444e-04, c3 = 2.019202697e-07;
+  
+  float R2 = R1 * (1023.0 / (float)rawVal - 1.0);
+  float logR2 = log(R2);
+  float T = (1.0 / (c1 + c2*logR2 + c3*logR2*logR2*logR2));
+  return T - 273.15; // Celcius
 }
 
 void setGlow(byte r, byte g, byte b) {
@@ -69,129 +104,100 @@ void setGlow(byte r, byte g, byte b) {
   strip.show();
 }
 
+// ══════════════════════════════════════════════
+// COMMAND PARSER
+// ══════════════════════════════════════════════
+void processIncomingCommand(String cmd) {
+  cmd.trim();
+  if (cmd == "CMD:WORK") {
+    setGlow(0, 50, 0); // Green
+    currentStatus = "Focus Mode";
+    isGoodPosture = true;
+  } else if (cmd == "CMD:BREAK") {
+    setGlow(0, 0, 50); // Blue
+    currentStatus = "Break Time";
+    isGoodPosture = true;
+    tone(buzzerPin, 1000, 300);
+  } else if (cmd == "CMD:BAD_POSTURE") {
+    setGlow(50, 0, 0); // Red
+    currentStatus = "Slouching!";
+    isGoodPosture = false;
+    tone(buzzerPin, 800, 200);
+  } else if (cmd == "CMD:OK_POSTURE") {
+    setGlow(0, 50, 0); // Back to green
+    currentStatus = "Good!";
+    isGoodPosture = true;
+  }
+}
+
+// ══════════════════════════════════════════════
+// LCD RENDER
+// ══════════════════════════════════════════════
+void updateLCD(float temp, int co2) {
+  // Row 1: T:24.5C  C:450p
+  lcd.setCursor(0, 0);
+  lcd.print("T:");
+  lcd.print(temp, 1);
+  lcd.print("C  C:");
+  lcd.print(co2);
+  lcd.print("p     "); // padding to clear line
+  
+  // Row 2: [Emoji] Status
+  lcd.setCursor(0, 1);
+  if (isGoodPosture) {
+    lcd.write(byte(0)); // Smiley
+  } else {
+    lcd.write(byte(1)); // Frown
+  }
+  lcd.print(" ");
+  lcd.print(currentStatus);
+  lcd.print("            "); // Padding
+}
+
+// ══════════════════════════════════════════════
+// MAIN LOOP
+// ══════════════════════════════════════════════
 void loop() {
-  unsigned long currentMillis = millis();
-  if (currentMillis - previousMillis >= 1000) { 
-    previousMillis = currentMillis;
-    if (baselineDistance > 0) { 
-      if (timeLeft > 0) {
-        timeLeft--; 
-      } else {
-        isBreakTime = !isBreakTime; 
-        if (isBreakTime) {
-          timeLeft = 5; 
-          tone(buzzerPin, 1200, 500); 
-        } else {
-          timeLeft = 25; 
-          tone(buzzerPin, 800, 500); 
-        }
-      }
-    }
-  }
-
+  // 1. Read Button for Calibration
   if (digitalRead(buttonPin) == LOW) {
-    noTone(buzzerPin); 
-    setGlow(100, 100, 100); 
-    
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Calibrating...");
-    
-    tone(buzzerPin, 500, 200); 
-    delay(5000); 
-    baselineDistance = measureDistance();
-    
-    timeLeft = 25; 
-    isBreakTime = false;
-    postureTimerActive = false; 
-    
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Target Locked!");
-    tone(buzzerPin, 1000, 100);
-    delay(200);
-    tone(buzzerPin, 1000, 100);
-    delay(1000); 
-    lcd.clear();
+    int dist = measureDistance();
+    if (dist > 0 && dist < 150) {
+      baselineDistance = dist;
+      tone(buzzerPin, 1500, 100);
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("Calibration OK!");
+      lcd.setCursor(0,1);
+      lcd.print("Dist: "); lcd.print(dist); lcd.print("cm");
+      delay(2000);
+      lcd.clear();
+    }
   }
 
-  if (baselineDistance > 0) {
-    if (isBreakTime) {
-      setGlow(0, 0, 255); 
-      lcd.setCursor(0, 0);
-      lcd.print(" TAKE A BREAK!  ");
-      lcd.setCursor(0, 1);
-      lcd.print(" Back in: ");
-      lcd.print(timeLeft);
-      lcd.print("s   ");
-      delay(100);
-      return; 
-    }
+  // 2. Read Serial Commands from PC
+  if (Serial.available() > 0) {
+    String incoming = Serial.readStringUntil('\n');
+    processIncomingCommand(incoming);
+  }
 
-    currentDistance = measureDistance();
-    bool alarmTriggered = false; 
-    
-    lcd.setCursor(0, 0); 
-    
-    if (currentDistance == 0 || currentDistance > 150) {
-      lcd.print("User Away...    ");
-      setGlow(0, 0, 0); 
-      postureTimerActive = false; 
-    }
-    else if (currentDistance < (baselineDistance - 10) || currentDistance > (baselineDistance + 15)) {
-      if (!postureTimerActive) {
-        postureTimerActive = true;
-        postureTimerStart = millis();
-      }
+  // 3. Periodic Sensor Read & Transmit (Every 1s)
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;
 
-      if (millis() - postureTimerStart >= gracePeriod) {
-        lcd.print("Posture: BAD X( "); 
-        setGlow(255, 0, 0); 
-        tone(buzzerPin, 1000); 
-        alarmTriggered = true;
-      } else {
-        lcd.print("Careful...      ");
-        setGlow(255, 100, 0); 
-      }
-    } 
-    else {
-      postureTimerActive = false; 
-      lcd.print("Posture: OK  :) "); 
-      setGlow(0, 150, 0); 
-    }
-    
-    lcd.setCursor(0, 1);
-    
+    int dist = measureDistance();
+    float temp = measureTemperature();
+    int co2 = analogRead(co2Pin);
+    int light = analogRead(lightPin);
 
-    if (analogRead(lightPin) < darkThreshold) {
-      lcd.print("Warning: DARK!  ");
-      if (!alarmTriggered) { tone(buzzerPin, 300); alarmTriggered = true; } 
-    } 
-    else if (map(analogRead(co2Pin), 0, 1023, 400, 2000) > co2Threshold) {
-      lcd.print("CO2 HIGH! VENT! "); 
-      setGlow(255, 0, 0); 
-      if (!alarmTriggered) { tone(buzzerPin, 600); alarmTriggered = true; } 
-    } 
+    // Send JSON format to Serial port for Python to read
+    Serial.print("{\"temp\":"); Serial.print(temp, 2);
+    Serial.print(",\"co2\":"); Serial.print(co2);
+    Serial.print(",\"light\":"); Serial.print(light);
+    Serial.print(",\"dist\":"); Serial.print(dist);
+    Serial.print(",\"base\":"); Serial.print(baselineDistance);
+    Serial.println("}");
 
-    else if (map(analogRead(tempPin), 0, 1023, -50, 450) > hotThreshold) {
-      lcd.print("Temp: HOT!      ");
-      setGlow(255, 100, 0); 
-      if (!alarmTriggered) { tone(buzzerPin, 400); alarmTriggered = true; } 
-    }
-    else {
-      lcd.print("C:");
-      lcd.print(map(analogRead(co2Pin), 0, 1023, 400, 2000));
-      lcd.print(" ");
-      lcd.print(map(analogRead(tempPin), 0, 1023, -50, 450));
-      lcd.print("C T:");
-      lcd.print(timeLeft);
-      lcd.print("  "); 
-    }
-    
-    if (!alarmTriggered) {
-      noTone(buzzerPin);     
-    }
-    
-    delay(100); 
+    updateLCD(temp, co2);
   }
 }
