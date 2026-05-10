@@ -338,8 +338,8 @@
       </div>
 
       <div class="sidebar-link active" id="nav-dashboard" onclick="switchView('dashboard')">🏠 Dashboard</div>
-      <div class="sidebar-link" id="nav-focus">🍅 Focus Sessions</div>
-      <div class="sidebar-link" id="nav-posture">🧍 Posture Monitor</div>
+      <div class="sidebar-link" id="nav-focus" onclick="switchView('focus')">🍅 Focus Sessions</div>
+      <div class="sidebar-link" id="nav-posture" onclick="switchView('posture')">🧍 Posture Monitor</div>
       <div class="sidebar-link" id="nav-environment" onclick="switchView('environment')">🌿 Environment</div>
       <div class="sidebar-link" id="nav-history">📊 History & Stats</div>
       <div class="sidebar-link" id="nav-settings" onclick="switchView('settings')">⚙️ Settings</div>
@@ -607,6 +607,242 @@
 
       </div><!-- /view-dashboard -->
 
+      <!-- ── FOCUS VIEW ── -->
+      <div id="view-focus" style="display:none;flex-direction:column;gap:20px;">
+
+        <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;">
+
+          <!-- Large Timer Hero -->
+          <div class="glass"
+            style="padding:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+            <div
+              style="font-size:14px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.1em;margin-bottom:24px;"
+              id="focusMode">FOCUS TIME</div>
+
+            <div style="position:relative;width:280px;height:280px;margin-bottom:32px;">
+              <svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg"
+                style="position:absolute;inset:0;transform:rotate(-90deg);">
+                <circle cx="140" cy="140" r="120" fill="none" stroke="rgba(63, 63, 70, .5)" stroke-width="12" />
+                <circle id="focusRing" cx="140" cy="140" r="120" fill="none" stroke="var(--green)" stroke-width="12"
+                  stroke-linecap="round" stroke-dasharray="753.98" stroke-dashoffset="0"
+                  style="transition:stroke-dashoffset .8s cubic-bezier(.4,0,.2,1), stroke .4s;" />
+              </svg>
+              <div
+                style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                <div class="font-display" style="font-size:64px;font-weight:700;letter-spacing:-2px;line-height:1;"
+                  id="focusTimer">25:00</div>
+                <div style="display:flex;gap:6px;margin-top:16px;" id="focusSessionDots">
+                  <div class="pulse-dot" style="width:10px;height:10px;animation:none;background:var(--green);"></div>
+                  <div class="pulse-dot"
+                    style="width:10px;height:10px;animation:none;background:rgba(74,222,128,.2);box-shadow:none;"></div>
+                  <div class="pulse-dot"
+                    style="width:10px;height:10px;animation:none;background:rgba(74,222,128,.2);box-shadow:none;"></div>
+                  <div class="pulse-dot"
+                    style="width:10px;height:10px;animation:none;background:rgba(74,222,128,.2);box-shadow:none;"></div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:16px;">
+              <button id="focusPlayBtn" onclick="pomCtrl('start')"
+                style="width:64px;height:64px;border-radius:50%;background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.3);color:var(--green);font-size:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;"
+                onmouseover="this.style.background='rgba(74,222,128,.25)'"
+                onmouseout="this.style.background='rgba(74,222,128,.15)'">▶</button>
+              <button onclick="pomCtrl('skip')"
+                style="width:64px;height:64px;border-radius:50%;background:rgba(63,63,70,.3);border:1px solid var(--border);color:var(--sub);font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;"
+                onmouseover="this.style.background='rgba(63,63,70,.5)'"
+                onmouseout="this.style.background='rgba(63,63,70,.3)'" title="Skip to Next Phase">⏭</button>
+              <button onclick="pomCtrl('reset')"
+                style="width:64px;height:64px;border-radius:50%;background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.3);color:var(--red);font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;"
+                onmouseover="this.style.background='rgba(248,113,113,.25)'"
+                onmouseout="this.style.background='rgba(248,113,113,.15)'" title="Reset Session">↺</button>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:32px;">
+              <button onclick="quickSetTimer(25, 5)" class="pill"
+                style="cursor:pointer;background:var(--surface);border-color:var(--border);color:var(--text);font-size:12px;padding:4px 12px;transition:all .2s;"
+                onmouseover="this.style.background='var(--border)'"
+                onmouseout="this.style.background='var(--surface)'">25/5</button>
+              <button onclick="quickSetTimer(50, 10)" class="pill"
+                style="cursor:pointer;background:var(--surface);border-color:var(--border);color:var(--text);font-size:12px;padding:4px 12px;transition:all .2s;"
+                onmouseover="this.style.background='var(--border)'"
+                onmouseout="this.style.background='var(--surface)'">50/10</button>
+              <button onclick="quickSetTimer(90, 15)" class="pill"
+                style="cursor:pointer;background:var(--surface);border-color:var(--border);color:var(--text);font-size:12px;padding:4px 12px;transition:all .2s;"
+                onmouseover="this.style.background='var(--border)'"
+                onmouseout="this.style.background='var(--surface)'">90/15</button>
+            </div>
+          </div>
+
+          <!-- Side Panel -->
+          <div style="display:flex;flex-direction:column;gap:20px;">
+
+            <!-- Task List -->
+            <div class="glass" style="padding:24px;flex:1;display:flex;flex-direction:column;">
+              <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:16px;">Session Tasks</div>
+              <div style="display:flex;gap:8px;margin-bottom:16px;">
+                <input type="text" id="taskInput" placeholder="What are you focusing on?"
+                  style="flex:1;background:rgba(39,39,42,.6);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--text);font-size:13px;outline:none;"
+                  onkeypress="if(event.key === 'Enter') addTask()">
+                <button onclick="addTask()"
+                  style="background:var(--green);color:#000;border:none;border-radius:10px;width:36px;font-weight:bold;cursor:pointer;">+</button>
+              </div>
+              <div id="taskList"
+                style="display:flex;flex-direction:column;gap:10px;flex:1;overflow-y:auto;max-height:200px;">
+                <!-- tasks will go here -->
+              </div>
+            </div>
+
+            <!-- Ambient Sounds Placeholder -->
+            <div class="glass" style="padding:24px;">
+              <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:16px;">Ambient Sounds</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div class="ambient-btn" onclick="toggleAmbient('rain', this)"
+                  onmouseover="if(currentAmbient!=='rain')this.style.background='var(--border)'"
+                  onmouseout="if(currentAmbient!=='rain')this.style.background='rgba(39,39,42,.6)'"
+                  style="background:rgba(39,39,42,.6);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .2s;">
+                  <span style="font-size:20px;">🌧️</span>
+                  <span style="font-size:12px;color:var(--text);">Rain</span>
+                </div>
+                <div class="ambient-btn" onclick="toggleAmbient('cafe', this)"
+                  onmouseover="if(currentAmbient!=='cafe')this.style.background='var(--border)'"
+                  onmouseout="if(currentAmbient!=='cafe')this.style.background='rgba(39,39,42,.6)'"
+                  style="background:rgba(39,39,42,.6);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .2s;">
+                  <span style="font-size:20px;">☕</span>
+                  <span style="font-size:12px;color:var(--text);">Cafe</span>
+                </div>
+                <div class="ambient-btn" onclick="toggleAmbient('waves', this)"
+                  onmouseover="if(currentAmbient!=='waves')this.style.background='var(--border)'"
+                  onmouseout="if(currentAmbient!=='waves')this.style.background='rgba(39,39,42,.6)'"
+                  style="background:rgba(39,39,42,.6);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .2s;">
+                  <span style="font-size:20px;">🌊</span>
+                  <span style="font-size:12px;color:var(--text);">Waves</span>
+                </div>
+                <div class="ambient-btn" onclick="toggleAmbient('fire', this)"
+                  onmouseover="if(currentAmbient!=='fire')this.style.background='var(--border)'"
+                  onmouseout="if(currentAmbient!=='fire')this.style.background='rgba(39,39,42,.6)'"
+                  style="background:rgba(39,39,42,.6);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .2s;">
+                  <span style="font-size:20px;">🔥</span>
+                  <span style="font-size:12px;color:var(--text);">Fire</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div><!-- /view-focus -->
+
+      <!-- ── POSTURE VIEW ── -->
+      <div id="view-posture" style="display:none;flex-direction:column;gap:20px;">
+
+        <!-- Hero Widget -->
+        <div class="glass insight-glow"
+          style="padding:32px;display:flex;align-items:center;justify-content:space-between;border-color:rgba(74,222,128,.2);">
+          <div style="display:flex;align-items:center;gap:24px;">
+            <div
+              style="width:80px;height:80px;border-radius:24px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.25);display:flex;align-items:center;justify-content:center;font-size:40px;"
+              id="pmHeroIcon">😊</div>
+            <div>
+              <div
+                style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.04em;margin-bottom:4px;">
+                CURRENT POSTURE</div>
+              <div class="font-display" style="font-size:32px;font-weight:700;color:var(--text);" id="pmHeroStatus">Good
+              </div>
+              <div style="font-size:13px;color:var(--sub);margin-top:4px;" id="pmHeroMsg">You are maintaining a healthy
+                distance from the screen.</div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:12px;">
+            <div style="display:flex;gap:24px;text-align:right;">
+              <div>
+                <div style="font-size:11px;color:var(--muted);">Baseline</div>
+                <div class="font-mono" style="font-size:18px;color:var(--text);" id="pmBaseline">50cm</div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--muted);">Current</div>
+                <div class="font-mono" style="font-size:18px;color:var(--green);" id="pmCurrent">50cm</div>
+              </div>
+            </div>
+            <button onclick="recalibratePosture(event)"
+              style="padding:8px 16px;border-radius:12px;background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.3);color:var(--green);font-size:13px;cursor:pointer;font-family:'DM Mono',monospace;transition:all .2s;"
+              onmouseover="this.style.background='rgba(74,222,128,.25)'"
+              onmouseout="this.style.background='rgba(74,222,128,.15)'">
+              ⌖ Set New Baseline
+            </button>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+          <!-- Score -->
+          <div class="glass" style="padding:24px;text-align:center;">
+            <div
+              style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.04em;margin-bottom:16px;">
+              DAILY SCORE</div>
+            <div style="font-size:48px;font-weight:700;font-family:'Syne',sans-serif;color:var(--green);" id="pmScore">
+              100</div>
+            <div style="font-size:13px;color:var(--sub);margin-top:8px;">Out of 100</div>
+          </div>
+          <!-- Slouch Counter -->
+          <div class="glass" style="padding:24px;text-align:center;">
+            <div
+              style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.04em;margin-bottom:16px;">
+              SLOUCH WARNINGS</div>
+            <div style="font-size:48px;font-weight:700;font-family:'Syne',sans-serif;color:var(--text);"
+              id="pmWarnings">0</div>
+            <div style="font-size:13px;color:var(--sub);margin-top:8px;">Today</div>
+          </div>
+          <!-- Streak -->
+          <div class="glass" style="padding:24px;text-align:center;">
+            <div
+              style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.04em;margin-bottom:16px;">
+              LONGEST STREAK</div>
+            <div style="font-size:48px;font-weight:700;font-family:'Syne',sans-serif;color:var(--text);" id="pmStreak">
+              0m</div>
+            <div style="font-size:13px;color:var(--sub);margin-top:8px;">Uninterrupted good posture</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;">
+          <!-- Timeline Chart -->
+          <div class="glass" style="padding:24px;">
+            <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:20px;">Posture Timeline</div>
+            <div style="height:200px;">
+              <canvas id="postureChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Ergonomic Tips -->
+          <div class="glass" style="padding:24px;">
+            <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:16px;">Ergonomic Tips</div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;align-items:flex-start;gap:10px;">
+                <span style="font-size:16px;margin-top:2px;">🪑</span>
+                <p style="font-size:13px;color:var(--sub);line-height:1.6;">Ensure your feet rest flat on the floor,
+                  with knees at or slightly below hip level.</p>
+              </div>
+              <div style="display:flex;align-items:flex-start;gap:10px;">
+                <span style="font-size:16px;margin-top:2px;">💻</span>
+                <p style="font-size:13px;color:var(--sub);line-height:1.6;">Your screen should be roughly an arm's
+                  length away, with the top at eye level.</p>
+              </div>
+              <div style="display:flex;align-items:flex-start;gap:10px;">
+                <span style="font-size:16px;margin-top:2px;">🚶</span>
+                <p style="font-size:13px;color:var(--sub);line-height:1.6;">Take a 2-minute stretch break every hour to
+                  relieve spinal pressure.</p>
+              </div>
+            </div>
+            <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+              <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">AI
+                OBSERVATION</div>
+              <p id="pmAiInsight" style="font-size:12px;color:var(--green);line-height:1.5;">You tend to lean forward
+                during the late afternoon. Try adjusting your chair slightly closer to the desk then.</p>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /view-posture -->
+
       <!-- ── ENVIRONMENT VIEW ── -->
       <div id="view-environment" style="display:none;flex-direction:column;gap:20px;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
@@ -660,7 +896,7 @@
 
         <!-- ── SETTINGS VIEW ── -->
         <div id="view-settings" style="display:none;flex-direction:column;gap:20px;">
-          
+
           <!-- Appearance -->
           <div class="glass" style="padding:24px;">
             <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:12px;">Appearance</div>
@@ -684,16 +920,25 @@
             <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:16px;">Focus & Timer</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
               <div>
-                <label style="font-size:13px;color:var(--muted);margin-bottom:6px;display:block;">Focus Duration (mins)</label>
-                <input type="number" id="setFocusTime" value="25" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-family:'DM Mono',monospace;" onchange="saveSettings()">
+                <label style="font-size:13px;color:var(--muted);margin-bottom:6px;display:block;">Focus Duration
+                  (mins)</label>
+                <input type="number" id="setFocusTime" value="25"
+                  style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-family:'DM Mono',monospace;"
+                  onchange="saveSettings()">
               </div>
               <div>
-                <label style="font-size:13px;color:var(--muted);margin-bottom:6px;display:block;">Break Duration (mins)</label>
-                <input type="number" id="setBreakTime" value="5" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-family:'DM Mono',monospace;" onchange="saveSettings()">
+                <label style="font-size:13px;color:var(--muted);margin-bottom:6px;display:block;">Break Duration
+                  (mins)</label>
+                <input type="number" id="setBreakTime" value="5"
+                  style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-family:'DM Mono',monospace;"
+                  onchange="saveSettings()">
               </div>
               <div style="grid-column: span 2;">
-                <label style="font-size:13px;color:var(--muted);margin-bottom:6px;display:block;">Daily Focus Goal (hours)</label>
-                <input type="number" id="setDailyGoal" value="8" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-family:'DM Mono',monospace;" onchange="saveSettings()">
+                <label style="font-size:13px;color:var(--muted);margin-bottom:6px;display:block;">Daily Focus Goal
+                  (hours)</label>
+                <input type="number" id="setDailyGoal" value="8"
+                  style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-family:'DM Mono',monospace;"
+                  onchange="saveSettings()">
               </div>
             </div>
           </div>
@@ -703,7 +948,9 @@
             <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:16px;">Posture Monitor</div>
             <div>
               <label style="font-size:13px;color:var(--muted);margin-bottom:6px;display:block;">Strictness Level</label>
-              <select id="setPostureStrictness" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-family:'Inter',sans-serif;appearance:none;cursor:pointer;" onchange="saveSettings()">
+              <select id="setPostureStrictness"
+                style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-family:'Inter',sans-serif;appearance:none;cursor:pointer;"
+                onchange="saveSettings()">
                 <option value="relaxed">Relaxed (Warn after 15s)</option>
                 <option value="standard" selected>Standard (Warn after 10s)</option>
                 <option value="strict">Strict (Warn after 5s)</option>
@@ -713,28 +960,39 @@
 
           <!-- Environment Thresholds -->
           <div class="glass" style="padding:24px;">
-            <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:16px;">Environment Thresholds</div>
+            <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:16px;">Environment Thresholds
+            </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
               <div>
                 <label style="font-size:13px;color:var(--muted);margin-bottom:6px;display:block;">Max CO₂ (ppm)</label>
-                <input type="number" id="setCo2Max" value="800" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-family:'DM Mono',monospace;" onchange="saveSettings()">
+                <input type="number" id="setCo2Max" value="800"
+                  style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-family:'DM Mono',monospace;"
+                  onchange="saveSettings()">
               </div>
               <div>
-                <label style="font-size:13px;color:var(--muted);margin-bottom:6px;display:block;">Target Temp (°C)</label>
-                <input type="number" id="setTargetTemp" value="22" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-family:'DM Mono',monospace;" onchange="saveSettings()">
+                <label style="font-size:13px;color:var(--muted);margin-bottom:6px;display:block;">Target Temp
+                  (°C)</label>
+                <input type="number" id="setTargetTemp" value="22"
+                  style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-family:'DM Mono',monospace;"
+                  onchange="saveSettings()">
               </div>
             </div>
           </div>
 
           <!-- Hardware Connection -->
           <div class="glass" style="padding:24px;">
-            <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:16px;">Hardware Integration</div>
-            <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:16px;">
+            <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:16px;">Hardware Integration
+            </div>
+            <div
+              style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:16px;">
               <div>
                 <div style="font-size:14px;font-weight:500;">Arduino Bridge</div>
-                <div style="font-size:12px;color:var(--sub);margin-top:2px;">COM Port Status: <span style="color:var(--green);" id="comPortStatus">Simulated</span></div>
+                <div style="font-size:12px;color:var(--sub);margin-top:2px;">COM Port Status: <span
+                    style="color:var(--green);" id="comPortStatus">Simulated</span></div>
               </div>
-              <button id="reconnectBtn" onclick="reconnectHardware()" style="padding:8px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:13px;cursor:pointer;transition:all .2s;" onmouseover="this.style.borderColor='var(--green)'" onmouseout="this.style.borderColor='var(--border)'">
+              <button id="reconnectBtn" onclick="reconnectHardware()"
+                style="padding:8px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:13px;cursor:pointer;transition:all .2s;"
+                onmouseover="this.style.borderColor='var(--green)'" onmouseout="this.style.borderColor='var(--border)'">
                 Reconnect
               </button>
             </div>
@@ -747,59 +1005,88 @@
 
           <!-- Hero / Product intro -->
           <div class="glass insight-glow" style="padding:36px;border-color:rgba(74,222,128,.2);text-align:center;">
-            <div style="display:inline-flex;align-items:center;justify-content:center;width:72px;height:72px;border-radius:20px;background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.3);font-size:38px;margin-bottom:18px;">🌱</div>
-            <h2 class="font-display" style="font-size:32px;font-weight:800;letter-spacing:-.5px;color:var(--green);margin-bottom:8px;">DeskBuddy</h2>
-            <p style="font-size:13px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.08em;margin-bottom:20px;">FOCUS BETTER. FEEL BETTER.</p>
+            <div
+              style="display:inline-flex;align-items:center;justify-content:center;width:72px;height:72px;border-radius:20px;background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.3);font-size:38px;margin-bottom:18px;">
+              🌱</div>
+            <h2 class="font-display"
+              style="font-size:32px;font-weight:800;letter-spacing:-.5px;color:var(--green);margin-bottom:8px;">
+              DeskBuddy</h2>
+            <p
+              style="font-size:13px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.08em;margin-bottom:20px;">
+              FOCUS BETTER. FEEL BETTER.</p>
             <p style="font-size:15px;color:var(--sub);line-height:1.8;max-width:680px;margin:0 auto;">
-              An all-in-one, <span style="color:var(--green);font-weight:500;">Arduino-powered</span> desktop companion designed to keep you focused, healthy, and productive. DeskBuddy monitors your posture, enforces healthy study breaks using the Pomodoro technique, and keeps an eye on your room's environmental conditions — all in real time.
+              An all-in-one, <span style="color:var(--green);font-weight:500;">Arduino-powered</span> desktop companion
+              designed to keep you focused, healthy, and productive. DeskBuddy monitors your posture, enforces healthy
+              study breaks using the Pomodoro technique, and keeps an eye on your room's environmental conditions — all
+              in real time.
             </p>
           </div>
 
           <!-- Features grid -->
           <div>
-            <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.08em;margin-bottom:14px;padding-left:4px;">CORE FEATURES</div>
+            <div
+              style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.08em;margin-bottom:14px;padding-left:4px;">
+              CORE FEATURES</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
 
               <div class="glass" style="padding:24px;">
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-                  <div style="width:40px;height:40px;border-radius:12px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🧍</div>
+                  <div
+                    style="width:40px;height:40px;border-radius:12px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">
+                    🧍</div>
                   <div class="font-display" style="font-size:15px;font-weight:700;">Posture Monitoring</div>
                 </div>
-                <p style="font-size:13px;color:var(--sub);line-height:1.7;">Uses an <span style="color:var(--text);font-family:'DM Mono',monospace;font-size:12px;">HC-SR04</span> ultrasonic sensor to lock onto your baseline sitting position. If you slouch or lean too close to your screen for more than 7 seconds, a buzzer and visual alarm will remind you to sit up straight.</p>
+                <p style="font-size:13px;color:var(--sub);line-height:1.7;">Uses an <span
+                    style="color:var(--text);font-family:'DM Mono',monospace;font-size:12px;">HC-SR04</span> ultrasonic
+                  sensor to lock onto your baseline sitting position. If you slouch or lean too close to your screen for
+                  more than 7 seconds, a buzzer and visual alarm will remind you to sit up straight.</p>
               </div>
 
               <div class="glass" style="padding:24px;">
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-                  <div style="width:40px;height:40px;border-radius:12px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.25);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🍅</div>
+                  <div
+                    style="width:40px;height:40px;border-radius:12px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.25);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">
+                    🍅</div>
                   <div class="font-display" style="font-size:15px;font-weight:700;">Pomodoro Timer</div>
                 </div>
-                <p style="font-size:13px;color:var(--sub);line-height:1.7;">Automatically tracks your study sessions — <span style="color:var(--green);font-weight:500;">25 minutes</span> of focused work followed by <span style="color:var(--green);font-weight:500;">5 minutes</span> of break — with distinct audio cues and LCD updates to keep you in the zone.</p>
+                <p style="font-size:13px;color:var(--sub);line-height:1.7;">Automatically tracks your study sessions —
+                  <span style="color:var(--green);font-weight:500;">25 minutes</span> of focused work followed by <span
+                    style="color:var(--green);font-weight:500;">5 minutes</span> of break — with distinct audio cues and
+                  LCD updates to keep you in the zone.
+                </p>
               </div>
 
               <div class="glass" style="padding:24px;">
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-                  <div style="width:40px;height:40px;border-radius:12px;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.25);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🌿</div>
+                  <div
+                    style="width:40px;height:40px;border-radius:12px;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.25);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">
+                    🌿</div>
                   <div class="font-display" style="font-size:15px;font-weight:700;">Environmental Warnings</div>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
                   <div style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--sub);">
                     <span style="color:var(--amber);flex-shrink:0;margin-top:1px;">☀️</span>
-                    <span><strong style="color:var(--text);">Light:</strong> Warns if the room is too dark to read safely, preventing eye strain.</span>
+                    <span><strong style="color:var(--text);">Light:</strong> Warns if the room is too dark to read
+                      safely, preventing eye strain.</span>
                   </div>
                   <div style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--sub);">
                     <span style="color:var(--red);flex-shrink:0;margin-top:1px;">🌡️</span>
-                    <span><strong style="color:var(--text);">Temperature:</strong> Alerts you if the room becomes uncomfortably hot.</span>
+                    <span><strong style="color:var(--text);">Temperature:</strong> Alerts you if the room becomes
+                      uncomfortably hot.</span>
                   </div>
                   <div style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--sub);">
                     <span style="color:var(--green);flex-shrink:0;margin-top:1px;">🌫️</span>
-                    <span><strong style="color:var(--text);">CO₂ / Air Quality:</strong> Reminds you to open a window when the air gets stuffy.</span>
+                    <span><strong style="color:var(--text);">CO₂ / Air Quality:</strong> Reminds you to open a window
+                      when the air gets stuffy.</span>
                   </div>
                 </div>
               </div>
 
               <div class="glass" style="padding:24px;">
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-                  <div style="width:40px;height:40px;border-radius:12px;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.25);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🔊</div>
+                  <div
+                    style="width:40px;height:40px;border-radius:12px;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.25);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">
+                    🔊</div>
                   <div class="font-display" style="font-size:15px;font-weight:700;">Visual & Audio UI</div>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
@@ -823,51 +1110,65 @@
 
           <!-- Team section -->
           <div>
-            <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.08em;margin-bottom:14px;padding-left:4px;">MEET THE TEAM</div>
+            <div
+              style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.08em;margin-bottom:14px;padding-left:4px;">
+              MEET THE TEAM</div>
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;" id="teamGrid">
 
               <!-- Owner card 1 -->
               <div class="glass" style="padding:24px;text-align:center;transition:all .25s;">
-                <div style="width:88px;height:88px;border-radius:50%;background:rgba(74,222,128,.1);border:2px solid rgba(74,222,128,.3);margin:0 auto 14px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
-                  <img id="owner1-img" src="" alt="Owner 1" style="width:100%;height:100%;object-fit:cover;display:none;" />
+                <div
+                  style="width:88px;height:88px;border-radius:50%;background:rgba(74,222,128,.1);border:2px solid rgba(74,222,128,.3);margin:0 auto 14px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+                  <img id="owner1-img" src="" alt="Owner 1"
+                    style="width:100%;height:100%;object-fit:cover;display:none;" />
                   <span id="owner1-fallback" style="font-size:32px;">👤</span>
                 </div>
                 <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:4px;">Owner 1</div>
                 <div class="pill" style="font-size:10px;margin-bottom:10px;display:inline-block;">Co-Founder</div>
-                <p style="font-size:12px;color:var(--sub);line-height:1.6;">Hardware & firmware engineer. Designed the Arduino sensor stack and posture detection logic.</p>
+                <p style="font-size:12px;color:var(--sub);line-height:1.6;">Hardware & firmware engineer. Designed the
+                  Arduino sensor stack and posture detection logic.</p>
               </div>
 
               <!-- Owner card 2 -->
               <div class="glass" style="padding:24px;text-align:center;transition:all .25s;">
-                <div style="width:88px;height:88px;border-radius:50%;background:rgba(74,222,128,.1);border:2px solid rgba(74,222,128,.3);margin:0 auto 14px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
-                  <img id="owner2-img" src="" alt="Owner 2" style="width:100%;height:100%;object-fit:cover;display:none;" />
+                <div
+                  style="width:88px;height:88px;border-radius:50%;background:rgba(74,222,128,.1);border:2px solid rgba(74,222,128,.3);margin:0 auto 14px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+                  <img id="owner2-img" src="" alt="Owner 2"
+                    style="width:100%;height:100%;object-fit:cover;display:none;" />
                   <span id="owner2-fallback" style="font-size:32px;">👤</span>
                 </div>
                 <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:4px;">Owner 2</div>
                 <div class="pill" style="font-size:10px;margin-bottom:10px;display:inline-block;">Co-Founder</div>
-                <p style="font-size:12px;color:var(--sub);line-height:1.6;">Backend & AI integration. Built the FastAPI data engine and Groq-powered smart insights.</p>
+                <p style="font-size:12px;color:var(--sub);line-height:1.6;">Backend & AI integration. Built the FastAPI
+                  data engine and Groq-powered smart insights.</p>
               </div>
 
               <!-- Owner card 3 -->
               <div class="glass" style="padding:24px;text-align:center;transition:all .25s;">
-                <div style="width:88px;height:88px;border-radius:50%;background:rgba(74,222,128,.1);border:2px solid rgba(74,222,128,.3);margin:0 auto 14px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
-                  <img id="owner3-img" src="" alt="Owner 3" style="width:100%;height:100%;object-fit:cover;display:none;" />
+                <div
+                  style="width:88px;height:88px;border-radius:50%;background:rgba(74,222,128,.1);border:2px solid rgba(74,222,128,.3);margin:0 auto 14px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+                  <img id="owner3-img" src="" alt="Owner 3"
+                    style="width:100%;height:100%;object-fit:cover;display:none;" />
                   <span id="owner3-fallback" style="font-size:32px;">👤</span>
                 </div>
                 <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:4px;">Owner 3</div>
                 <div class="pill" style="font-size:10px;margin-bottom:10px;display:inline-block;">Co-Founder</div>
-                <p style="font-size:12px;color:var(--sub);line-height:1.6;">UI/UX & dashboard design. Crafted the real-time interface and data visualisation layer.</p>
+                <p style="font-size:12px;color:var(--sub);line-height:1.6;">UI/UX & dashboard design. Crafted the
+                  real-time interface and data visualisation layer.</p>
               </div>
 
               <!-- Owner card 4 -->
               <div class="glass" style="padding:24px;text-align:center;transition:all .25s;">
-                <div style="width:88px;height:88px;border-radius:50%;background:rgba(74,222,128,.1);border:2px solid rgba(74,222,128,.3);margin:0 auto 14px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
-                  <img id="owner4-img" src="" alt="Owner 3" style="width:100%;height:100%;object-fit:cover;display:none;" />
+                <div
+                  style="width:88px;height:88px;border-radius:50%;background:rgba(74,222,128,.1);border:2px solid rgba(74,222,128,.3);margin:0 auto 14px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+                  <img id="owner4-img" src="" alt="Owner 3"
+                    style="width:100%;height:100%;object-fit:cover;display:none;" />
                   <span id="owner4-fallback" style="font-size:32px;">👤</span>
                 </div>
                 <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:4px;">Owner 4</div>
                 <div class="pill" style="font-size:10px;margin-bottom:10px;display:inline-block;">Co-Founder</div>
-                <p style="font-size:12px;color:var(--sub);line-height:1.6;">UI/UX & dashboard design. Crafted the real-time interface and data visualisation layer.</p>
+                <p style="font-size:12px;color:var(--sub);line-height:1.6;">UI/UX & dashboard design. Crafted the
+                  real-time interface and data visualisation layer.</p>
               </div>
 
             </div>
@@ -875,7 +1176,9 @@
 
           <!-- Tech stack strip -->
           <div class="glass" style="padding:20px 28px;">
-            <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.08em;margin-bottom:16px;">BUILT WITH</div>
+            <div
+              style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.08em;margin-bottom:16px;">
+              BUILT WITH</div>
             <div style="display:flex;flex-wrap:wrap;gap:10px;">
               <span class="pill" style="font-size:12px;padding:5px 14px;">⚙️ Arduino (C++)</span>
               <span class="pill" style="font-size:12px;padding:5px 14px;">🐍 Python / FastAPI</span>
@@ -898,15 +1201,15 @@
           </div>
 
         </div> -->
-        <!-- /view-about -->
+          <!-- /view-about -->
 
-        <!-- Tip bar -->
-        <div class="glass"
-          style="padding:12px 20px;display:flex;align-items:center;gap:10px;border-color:rgba(74,222,128,.12);">
-          <span style="font-size:14px;">🌿</span>
-          <span id="tipText" style="font-size:13px;color:var(--sub);">Small steps every day lead to big changes. Stay
-            consistent!</span>
-        </div>
+          <!-- Tip bar -->
+          <div class="glass"
+            style="padding:12px 20px;display:flex;align-items:center;gap:10px;border-color:rgba(74,222,128,.12);">
+            <span style="font-size:14px;">🌿</span>
+            <span id="tipText" style="font-size:13px;color:var(--sub);">Small steps every day lead to big changes. Stay
+              consistent!</span>
+          </div>
 
     </main>
   </div>
@@ -940,16 +1243,18 @@
     // Apply photos if provided
     OWNER_PHOTOS.forEach((owner, i) => {
       if (owner.photo) {
-        const img = document.getElementById(`owner${i+1}-img`);
-        const fb  = document.getElementById(`owner${i+1}-fallback`);
+        const img = document.getElementById(`owner${i + 1}-img`);
+        const fb = document.getElementById(`owner${i + 1}-fallback`);
         if (img) { img.src = owner.photo; img.style.display = 'block'; }
-        if (fb)  { fb.style.display = 'none'; }
+        if (fb) { fb.style.display = 'none'; }
       }
     });
 
     function switchView(viewName) {
       // Hide all views
       document.getElementById('view-dashboard').style.display = 'none';
+      document.getElementById('view-focus').style.display = 'none';
+      document.getElementById('view-posture').style.display = 'none';
       document.getElementById('view-environment').style.display = 'none';
       document.getElementById('view-settings').style.display = 'none';
       document.getElementById('view-about').style.display = 'none';
@@ -962,6 +1267,16 @@
         document.getElementById('nav-dashboard').classList.add('active');
         document.getElementById('pageTitle').textContent = 'Dashboard';
         document.getElementById('pageSubtitle').textContent = 'Welcome back! Stay focused and keep growing.';
+      } else if (viewName === 'focus') {
+        document.getElementById('view-focus').style.display = 'flex';
+        document.getElementById('nav-focus').classList.add('active');
+        document.getElementById('pageTitle').textContent = 'Focus Sessions';
+        document.getElementById('pageSubtitle').textContent = 'Stay in the zone with immersive timers and task lists.';
+      } else if (viewName === 'posture') {
+        document.getElementById('view-posture').style.display = 'flex';
+        document.getElementById('nav-posture').classList.add('active');
+        document.getElementById('pageTitle').textContent = 'Posture Monitor';
+        document.getElementById('pageSubtitle').textContent = 'Track and improve your seating habits.';
       } else if (viewName === 'environment') {
         document.getElementById('view-environment').style.display = 'flex';
         document.getElementById('nav-environment').classList.add('active');
@@ -1017,8 +1332,8 @@
       POM_WORK = focusTime * 60;
       POM_BREAK = breakTime * 60;
       DAILY_GOAL_H = parseFloat(dailyGoal);
-      if(!pomRunning && pomIsWork) { pomSecs = POM_WORK; pomRender(); }
-      
+      if (!pomRunning && pomIsWork) { pomSecs = POM_WORK; pomRender(); }
+
       // Update environment optimal texts
       const envTempStatus = document.getElementById('envTempStatus');
       if (envTempStatus) envTempStatus.textContent = `Target: ${targetTemp}°C`;
@@ -1027,13 +1342,13 @@
     }
 
     function initSettings() {
-      if(localStorage.getItem('focusTime')) document.getElementById('setFocusTime').value = localStorage.getItem('focusTime');
-      if(localStorage.getItem('breakTime')) document.getElementById('setBreakTime').value = localStorage.getItem('breakTime');
-      if(localStorage.getItem('dailyGoal')) document.getElementById('setDailyGoal').value = localStorage.getItem('dailyGoal');
-      if(localStorage.getItem('postureStrictness')) document.getElementById('setPostureStrictness').value = localStorage.getItem('postureStrictness');
-      if(localStorage.getItem('co2Max')) document.getElementById('setCo2Max').value = localStorage.getItem('co2Max');
-      if(localStorage.getItem('targetTemp')) document.getElementById('setTargetTemp').value = localStorage.getItem('targetTemp');
-      
+      if (localStorage.getItem('focusTime')) document.getElementById('setFocusTime').value = localStorage.getItem('focusTime');
+      if (localStorage.getItem('breakTime')) document.getElementById('setBreakTime').value = localStorage.getItem('breakTime');
+      if (localStorage.getItem('dailyGoal')) document.getElementById('setDailyGoal').value = localStorage.getItem('dailyGoal');
+      if (localStorage.getItem('postureStrictness')) document.getElementById('setPostureStrictness').value = localStorage.getItem('postureStrictness');
+      if (localStorage.getItem('co2Max')) document.getElementById('setCo2Max').value = localStorage.getItem('co2Max');
+      if (localStorage.getItem('targetTemp')) document.getElementById('setTargetTemp').value = localStorage.getItem('targetTemp');
+
       const targetTemp = document.getElementById('setTargetTemp').value;
       const co2Max = document.getElementById('setCo2Max').value;
       const envTempStatus = document.getElementById('envTempStatus');
@@ -1041,7 +1356,7 @@
       const envCo2Status = document.getElementById('envCo2Status');
       if (envCo2Status) envCo2Status.textContent = `Target: < ${co2Max} ppm`;
     }
-    
+
     // Call initSettings when DOM is ready
     window.addEventListener('DOMContentLoaded', initSettings);
 
@@ -1090,19 +1405,42 @@
     let pomIsWork = true;
     let pomSession = 1;
     const CIRC = 2 * Math.PI * 52;   // 326.7
+    const CIRC_LARGE = 2 * Math.PI * 120; // 753.98
 
     function pomRender() {
       const total = pomIsWork ? POM_WORK : POM_BREAK;
       const frac = pomSecs / total;
       const offset = CIRC * (1 - frac);
+      const strTime = `${String(Math.floor(pomSecs / 60)).padStart(2, '0')}:${String(pomSecs % 60).padStart(2, '0')}`;
 
-      document.getElementById('pomTimer').textContent =
-        `${String(Math.floor(pomSecs / 60)).padStart(2, '0')}:${String(pomSecs % 60).padStart(2, '0')}`;
+      // Small dashboard timer
+      document.getElementById('pomTimer').textContent = strTime;
       document.getElementById('pomMode').textContent = pomIsWork ? 'FOCUS' : 'BREAK';
       document.getElementById('pomLabel').textContent = pomIsWork ? 'Focus Time' : 'Break Time';
       document.getElementById('pomSession').textContent = `${pomSession} / 4`;
       document.getElementById('pomRing').style.strokeDashoffset = offset;
       document.getElementById('pomRing').style.stroke = pomIsWork ? '#4ade80' : '#60a5fa';
+
+      // Large focus timer
+      const fTimer = document.getElementById('focusTimer');
+      if (fTimer) {
+        fTimer.textContent = strTime;
+        document.getElementById('focusMode').textContent = pomIsWork ? 'FOCUS TIME' : 'BREAK TIME';
+        document.getElementById('focusRing').style.strokeDashoffset = CIRC_LARGE * (1 - frac);
+        document.getElementById('focusRing').style.stroke = pomIsWork ? '#4ade80' : '#60a5fa';
+
+        const playBtn = document.getElementById('focusPlayBtn');
+        if (playBtn) playBtn.textContent = pomRunning ? '⏸' : '▶';
+
+        const dots = document.getElementById('focusSessionDots').children;
+        for (let i = 0; i < 4; i++) {
+          if (i < pomSession) {
+            dots[i].style.background = pomIsWork ? 'var(--green)' : 'var(--amber)';
+          } else {
+            dots[i].style.background = 'rgba(74,222,128,.2)';
+          }
+        }
+      }
     }
 
     function pomCtrl(action) {
@@ -1125,6 +1463,14 @@
             pomRender();
           }, 1000);
         }
+      } else if (action === 'skip') {
+        if (pomIsWork) {
+          pomIsWork = false; pomSecs = POM_BREAK;
+        } else {
+          pomIsWork = true; pomSecs = POM_WORK;
+          pomSession = pomSession < 4 ? pomSession + 1 : 1;
+        }
+        pomRender();
       } else if (action === 'reset') {
         clearInterval(pomInterval);
         pomRunning = false; pomIsWork = true;
@@ -1133,6 +1479,61 @@
       }
     }
     pomRender();
+
+    function quickSetTimer(focus, breakT) {
+      document.getElementById('setFocusTime').value = focus;
+      document.getElementById('setBreakTime').value = breakT;
+      saveSettings();
+      pomCtrl('reset');
+    }
+
+    function addTask() {
+      const inp = document.getElementById('taskInput');
+      const text = inp.value.trim();
+      if (!text) return;
+      const list = document.getElementById('taskList');
+      const item = document.createElement('div');
+      item.style.cssText = 'display:flex;align-items:center;gap:10px;background:rgba(63,63,70,.2);padding:10px;border-radius:8px;border:1px solid var(--border);';
+      item.innerHTML = `
+        <input type="checkbox" style="cursor:pointer;" onchange="this.nextElementSibling.style.textDecoration = this.checked ? 'line-through' : 'none'; this.nextElementSibling.style.opacity = this.checked ? '0.5' : '1';">
+        <span style="font-size:13px;flex:1;transition:all .2s;">${text}</span>
+        <button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--sub);cursor:pointer;font-size:14px;">✕</button>
+      `;
+      list.appendChild(item);
+      inp.value = '';
+    }
+
+    // ══════════════════════════════════════════════
+    // AMBIENT SOUNDS
+    // ══════════════════════════════════════════════
+    let currentAmbient = null;
+    let ambientAudio = new Audio();
+    ambientAudio.loop = true;
+
+    const ambientURLs = {
+      rain: './sounds/rain.mp3',
+      cafe: '',
+      waves: './sounds/ocean.mp3',
+      fire: ''
+    };
+
+    function toggleAmbient(type, element) {
+      document.querySelectorAll('.ambient-btn').forEach(btn => {
+        btn.style.background = 'rgba(39,39,42,.6)';
+        btn.style.borderColor = 'var(--border)';
+      });
+
+      if (currentAmbient === type) {
+        ambientAudio.pause();
+        currentAmbient = null;
+      } else {
+        ambientAudio.src = ambientURLs[type];
+        ambientAudio.play().catch(e => console.log('Audio play failed:', e));
+        currentAmbient = type;
+        element.style.background = 'rgba(74,222,128,.15)';
+        element.style.borderColor = 'var(--green)';
+      }
+    }
 
     // ══════════════════════════════════════════════
     // CHART — created ONCE, updated in-place
@@ -1210,6 +1611,45 @@
       },
     });
 
+    // Posture Chart
+    const postureCtx = document.getElementById('postureChart').getContext('2d');
+    const postureChart = new Chart(postureCtx, {
+      type: 'bar',
+      data: {
+        labels: ['9am', '10am', '11am', '12pm', '1pm', '2pm', '3pm', '4pm'],
+        datasets: [{
+          label: 'Warnings',
+          data: [0, 1, 0, 0, 2, 0, 0, 0],
+          backgroundColor: 'rgba(251,191,36,.25)',
+          borderColor: '#fbbf24',
+          borderWidth: 1.5, borderRadius: 4,
+          hoverBackgroundColor: 'rgba(251,191,36,.4)',
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        animation: { duration: 600 },
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#52525b', font: { family: 'DM Mono', size: 10 } }, grid: { display: false } },
+          y: { ticks: { color: '#52525b', font: { family: 'DM Mono', size: 10 }, stepSize: 1 }, grid: { color: 'rgba(63,63,70,.3)' }, suggestedMax: 5 },
+        },
+      },
+    });
+
+    function recalibratePosture(e) {
+      const btn = e.currentTarget;
+      const originalText = btn.textContent;
+      btn.textContent = 'Calibrating...';
+
+      // Simulate baseline calibration delay
+      setTimeout(() => {
+        btn.textContent = '✓ Baseline Updated';
+        document.getElementById('pmBaseline').textContent = document.getElementById('pmCurrent').textContent;
+        setTimeout(() => { btn.textContent = originalText; }, 2000);
+      }, 1500);
+    }
+
     // ══════════════════════════════════════════════
     // LIVE FEED
     // ══════════════════════════════════════════════
@@ -1267,6 +1707,25 @@
         }
         lastPosture = s.posture_status;
 
+        // Update Posture View UI
+        document.getElementById('pmHeroIcon').textContent = pIcon[s.posture_status] || '😊';
+        document.getElementById('pmHeroStatus').textContent = s.posture_status;
+        document.getElementById('pmHeroMsg').textContent = pMsg[s.posture_status] || '';
+        document.getElementById('pmScore').textContent = s.posture_score;
+        document.getElementById('pmScore').style.color = s.posture_score >= 80 ? 'var(--green)' : s.posture_score >= 50 ? 'var(--amber)' : 'var(--red)';
+
+        // Mock current distance for visual effect based on status
+        let simulatedDistance = "50cm";
+        let simulatedColor = "var(--green)";
+        if (s.posture_status === "Warning") { simulatedDistance = "40cm"; simulatedColor = "var(--amber)"; }
+        if (s.posture_status === "Poor") { simulatedDistance = "30cm"; simulatedColor = "var(--red)"; }
+        document.getElementById('pmCurrent').textContent = simulatedDistance;
+        document.getElementById('pmCurrent').style.color = simulatedColor;
+
+        // Use placeholder stats for warnings and streak since they aren't in latest_session yet
+        document.getElementById('pmWarnings').textContent = Math.max(0, 100 - s.posture_score) > 10 ? 2 : 0;
+        document.getElementById('pmStreak').textContent = s.posture_score >= 80 ? '45m' : '10m';
+
         // ─── Focus score / total ───
         const focusPct = Math.round((s.focus_score / 100) * DAILY_GOAL_H * 60);
         const focusH = Math.floor(focusPct / 60);
@@ -1319,6 +1778,8 @@
 
         // ─── AI Insight ───
         document.getElementById('aiInsight').textContent = data.ai_insight || 'No insight available yet.';
+        const pmAi = document.getElementById('pmAiInsight');
+        if (pmAi) pmAi.textContent = data.ai_insight || 'No insight available yet.';
         const age = data.insight_cache_age_seconds;
         document.getElementById('cacheAge').textContent =
           age < 10 ? 'Just generated' :
