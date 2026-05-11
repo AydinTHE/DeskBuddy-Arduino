@@ -1,53 +1,95 @@
-#include <Adafruit_LiquidCrystal.h>
-#include <Adafruit_NeoPixel.h>
+// ═══════════════════════════════════════════════════════════════
+// DeskBuddy — Arduino Raw Sensor Transmitter
+// ═══════════════════════════════════════════════════════════════
+// Reads all sensors and transmits raw data as JSON over Serial
+// (USB) to the PC bridge. All calculation, posture detection,
+// Pomodoro logic, and alerting is handled by the PC backend.
+//
+// Hardware: LCD 16x2 (I2C), Button, Ultrasonic (HC-SR04),
+//           Photoresistor, CO2 sensor, Temp sensor, LEDs
+//
+// Serial output (JSON line every 500ms):
+//   {"d":42,"l":512,"co2":730,"t":680,"btn":0}
+//
+//   d   = distance in cm (ultrasonic, -1 if no echo)
+//   l   = light level (analog 0-1023)
+//   co2 = CO2 raw analog (0-1023)
+//   t   = temperature raw analog (0-1023)
+//   btn = button state (1 = pressed, 0 = not pressed)
+//
+// Serial input commands from PC (for feedback):
+//   BUZZ:freq:duration   — play buzzer tone
+//   LCD:line:message     — write to LCD line (0 or 1)
+//   LED:pin:state        — set an LED (pin number, 1=on 0=off)
+//   NOBUZZ               — silence buzzer
+//   CALIBRATE            — respond with ACK
+// ═══════════════════════════════════════════════════════════════
 
+#include <Adafruit_LiquidCrystal.h>
+
+// ──────────────────────────────────────────────
+// Pin Assignments
+// ──────────────────────────────────────────────
+const byte trigPin    = 9;
+const byte echoPin    = 10;
+const byte buzzerPin  = 8;
+const byte buttonPin  = 2;
+const byte lightPin   = A0;
+const byte co2Pin     = A1;
+const byte tempPin    = A2;
+
+// LED pins — add your LED pin numbers here as you wire them
+const byte ledPins[]  = {3, 4, 5};       // example: green, yellow, red
+const byte ledCount   = sizeof(ledPins) / sizeof(ledPins[0]);
+
+// ──────────────────────────────────────────────
+// Hardware
+// ──────────────────────────────────────────────
 Adafruit_LiquidCrystal lcd(0);
 
+// ──────────────────────────────────────────────
+// Timing
+// ──────────────────────────────────────────────
+const unsigned long SAMPLE_INTERVAL_MS = 500;
+unsigned long lastSampleTime = 0;
 
-const byte trigPin = 9;
-const byte echoPin = 10;
-const byte buzzerPin = 8;
-const byte buttonPin = 2; 
-const byte lightPin = A0; 
-const byte co2Pin = A1; 
-const byte tempPin = A2; 
-const byte ledPin = 3; 
+// ──────────────────────────────────────────────
+// Serial input buffer
+// ──────────────────────────────────────────────
+String serialBuffer = "";
 
-const byte ledCount = 8; 
-Adafruit_NeoPixel strip(ledCount, ledPin, NEO_GRB + NEO_KHZ800);
-
-int baselineDistance = 0; 
-int currentDistance = 0;
-
-const int darkThreshold = 300; 
-const int co2Threshold = 1200; 
-const byte hotThreshold = 28; 
-
-unsigned long previousMillis = 0;
-byte timeLeft = 25; 
-bool isBreakTime = false;
-unsigned long postureTimerStart = 0;
-bool postureTimerActive = false;
-const unsigned long gracePeriod = 7000; 
-
+// ═══════════════════════════════════════════════
+// SETUP
+// ═══════════════════════════════════════════════
 void setup() {
+  Serial.begin(115200);
+
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
   pinMode(buzzerPin, OUTPUT);
-  pinMode(buttonPin, INPUT_PULLUP); 
-  
+  pinMode(buttonPin, INPUT_PULLUP);
 
-  
+  // Initialize LED pins
+  for (byte i = 0; i < ledCount; i++) {
+    pinMode(ledPins[i], OUTPUT);
+    digitalWrite(ledPins[i], LOW);
+  }
+
   lcd.begin(16, 2);
-  strip.begin();
-  strip.show(); 
-  strip.setBrightness(50); 
-  
-  lcd.setCursor(0, 0); 
-  lcd.print("Sys Ready!      "); 
-  lcd.setCursor(0, 1); 
-  lcd.print("Press Button... ");
+
+  // Boot message
+  lcd.setCursor(0, 0);
+  lcd.print("DeskBuddy v2    ");
+  lcd.setCursor(0, 1);
+  lcd.print("Waiting for PC..");
+
+  // Signal ready to PC
+  Serial.println("{\"status\":\"ready\"}");
 }
+
+// ═══════════════════════════════════════════════
+// SENSOR READING
+// ═══════════════════════════════════════════════
 
 int measureDistance() {
   digitalWrite(trigPin, LOW);
@@ -55,143 +97,97 @@ int measureDistance() {
   digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
-  
-  long duration = pulseIn(echoPin, HIGH, 30000); 
-  if (duration == 0) return 0;
 
-  return (duration * 34) / 2000; 
+  long duration = pulseIn(echoPin, HIGH, 30000);
+  if (duration == 0) return -1;  // no echo / out of range
+
+  return (duration * 34) / 2000;  // cm
 }
 
-void setGlow(byte r, byte g, byte b) {
-  for(byte i = 0; i < strip.numPixels(); i++) {
-    strip.setPixelColor(i, strip.Color(r, g, b));
+// ═══════════════════════════════════════════════
+// SERIAL COMMAND HANDLER
+// ═══════════════════════════════════════════════
+// Receives commands from the PC bridge to control
+// the Arduino's output devices (buzzer, LEDs, LCD).
+
+void handleCommand(String cmd) {
+  cmd.trim();
+
+  if (cmd.startsWith("BUZZ:")) {
+    // Format: BUZZ:freq:duration
+    int c1 = cmd.indexOf(':', 5);
+    if (c1 > 0) {
+      int freq = cmd.substring(5, c1).toInt();
+      int dur  = cmd.substring(c1 + 1).toInt();
+      tone(buzzerPin, freq, dur);
+    }
   }
-  strip.show();
+  else if (cmd == "NOBUZZ") {
+    noTone(buzzerPin);
+  }
+  else if (cmd.startsWith("LED:")) {
+    // Format: LED:pin:state  (e.g. LED:3:1 turns pin 3 on)
+    int c1 = cmd.indexOf(':', 4);
+    if (c1 > 0) {
+      int pin   = cmd.substring(4, c1).toInt();
+      int state = cmd.substring(c1 + 1).toInt();
+      digitalWrite(pin, state ? HIGH : LOW);
+    }
+  }
+  else if (cmd.startsWith("LCD:")) {
+    // Format: LCD:line:message
+    int c1 = cmd.indexOf(':', 4);
+    if (c1 > 0) {
+      int line = cmd.substring(4, c1).toInt();
+      String msg = cmd.substring(c1 + 1);
+      while (msg.length() < 16) msg += ' ';
+      lcd.setCursor(0, line);
+      lcd.print(msg.substring(0, 16));
+    }
+  }
+  else if (cmd == "CALIBRATE") {
+    Serial.println("{\"ack\":\"calibrate\"}");
+  }
 }
+
+// ═══════════════════════════════════════════════
+// MAIN LOOP
+// ═══════════════════════════════════════════════
 
 void loop() {
-  unsigned long currentMillis = millis();
-  if (currentMillis - previousMillis >= 1000) { 
-    previousMillis = currentMillis;
-    if (baselineDistance > 0) { 
-      if (timeLeft > 0) {
-        timeLeft--; 
-      } else {
-        isBreakTime = !isBreakTime; 
-        if (isBreakTime) {
-          timeLeft = 5; 
-          tone(buzzerPin, 1200, 500); 
-        } else {
-          timeLeft = 25; 
-          tone(buzzerPin, 800, 500); 
-        }
-      }
+  // ─── Check for incoming commands from PC ───
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (c == '\n') {
+      handleCommand(serialBuffer);
+      serialBuffer = "";
+    } else {
+      serialBuffer += c;
     }
   }
 
-  if (digitalRead(buttonPin) == LOW) {
-    noTone(buzzerPin); 
-    setGlow(100, 100, 100); 
-    
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Calibrating...");
-    
-    tone(buzzerPin, 500, 200); 
-    delay(5000); 
-    baselineDistance = measureDistance();
-    
-    timeLeft = 25; 
-    isBreakTime = false;
-    postureTimerActive = false; 
-    
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Target Locked!");
-    tone(buzzerPin, 1000, 100);
-    delay(200);
-    tone(buzzerPin, 1000, 100);
-    delay(1000); 
-    lcd.clear();
-  }
+  // ─── Send sensor data at fixed interval ───
+  unsigned long now = millis();
+  if (now - lastSampleTime >= SAMPLE_INTERVAL_MS) {
+    lastSampleTime = now;
 
-  if (baselineDistance > 0) {
-    if (isBreakTime) {
-      setGlow(0, 0, 255); 
-      lcd.setCursor(0, 0);
-      lcd.print(" TAKE A BREAK!  ");
-      lcd.setCursor(0, 1);
-      lcd.print(" Back in: ");
-      lcd.print(timeLeft);
-      lcd.print("s   ");
-      delay(100);
-      return; 
-    }
+    int distance = measureDistance();
+    int lightVal = analogRead(lightPin);
+    int co2Raw   = analogRead(co2Pin);
+    int tempRaw  = analogRead(tempPin);
+    int btnState = (digitalRead(buttonPin) == LOW) ? 1 : 0;
 
-    currentDistance = measureDistance();
-    bool alarmTriggered = false; 
-    
-    lcd.setCursor(0, 0); 
-    
-    if (currentDistance == 0 || currentDistance > 150) {
-      lcd.print("User Away...    ");
-      setGlow(0, 0, 0); 
-      postureTimerActive = false; 
-    }
-    else if (currentDistance < (baselineDistance - 10) || currentDistance > (baselineDistance + 15)) {
-      if (!postureTimerActive) {
-        postureTimerActive = true;
-        postureTimerStart = millis();
-      }
-
-      if (millis() - postureTimerStart >= gracePeriod) {
-        lcd.print("Posture: BAD X( "); 
-        setGlow(255, 0, 0); 
-        tone(buzzerPin, 1000); 
-        alarmTriggered = true;
-      } else {
-        lcd.print("Careful...      ");
-        setGlow(255, 100, 0); 
-      }
-    } 
-    else {
-      postureTimerActive = false; 
-      lcd.print("Posture: OK  :) "); 
-      setGlow(0, 150, 0); 
-    }
-    
-    lcd.setCursor(0, 1);
-    
-
-    if (analogRead(lightPin) < darkThreshold) {
-      lcd.print("Warning: DARK!  ");
-      if (!alarmTriggered) { tone(buzzerPin, 300); alarmTriggered = true; } 
-    } 
-    else if (map(analogRead(co2Pin), 0, 1023, 400, 2000) > co2Threshold) {
-      lcd.print("CO2 HIGH! VENT! "); 
-      setGlow(255, 0, 0); 
-      if (!alarmTriggered) { tone(buzzerPin, 600); alarmTriggered = true; } 
-    } 
-
-    else if (map(analogRead(tempPin), 0, 1023, -50, 450) > hotThreshold) {
-      lcd.print("Temp: HOT!      ");
-      setGlow(255, 100, 0); 
-      if (!alarmTriggered) { tone(buzzerPin, 400); alarmTriggered = true; } 
-    }
-    else {
-      lcd.print("C:");
-      lcd.print(map(analogRead(co2Pin), 0, 1023, 400, 2000));
-      lcd.print(" ");
-      lcd.print(map(analogRead(tempPin), 0, 1023, -50, 450));
-      lcd.print("C T:");
-      lcd.print(timeLeft);
-      lcd.print("  "); 
-    }
-    
-    if (!alarmTriggered) {
-      noTone(buzzerPin);     
-    }
-    
-    delay(100); 
+    // Send compact JSON line
+    Serial.print("{\"d\":");
+    Serial.print(distance);
+    Serial.print(",\"l\":");
+    Serial.print(lightVal);
+    Serial.print(",\"co2\":");
+    Serial.print(co2Raw);
+    Serial.print(",\"t\":");
+    Serial.print(tempRaw);
+    Serial.print(",\"btn\":");
+    Serial.print(btnState);
+    Serial.println("}");
   }
 }

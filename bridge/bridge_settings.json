@@ -1,0 +1,7 @@
+{
+    "focus_min": 25,
+    "break_min": 5,
+    "posture_strictness": "medium",
+    "co2_max": 1000,
+    "target_temp": 23
+}

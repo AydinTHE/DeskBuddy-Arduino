@@ -1339,6 +1339,13 @@
       if (envTempStatus) envTempStatus.textContent = `Target: ${targetTemp}°C`;
       const envCo2Status = document.getElementById('envCo2Status');
       if (envCo2Status) envCo2Status.textContent = `Target: < ${co2Max} ppm`;
+
+      // Sync settings to backend → bridge_settings.json → serial bridge
+      fetch(`${API_BASE}/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ focusTime, breakTime, postureStrictness: postureStr, co2Max, targetTemp }),
+      }).catch(err => console.warn('[Settings] Sync to bridge failed:', err));
     }
 
     function initSettings() {
