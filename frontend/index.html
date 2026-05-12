@@ -498,13 +498,6 @@
                 </div>
               </div>
 
-              <div style="display:flex;align-items:center;justify-content:space-between;">
-                <div style="display:flex;align-items:center;gap:6px;">
-                  <span style="font-size:14px;">🍃</span>
-                  <span style="font-size:12px;color:var(--sub);">AQI</span>
-                </div>
-                <span id="aqiVal" class="font-mono" style="font-size:15px;font-weight:500;">—</span>
-              </div>
             </div>
           </div>
 
@@ -518,7 +511,7 @@
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
               <div>
                 <div class="font-display" style="font-size:15px;font-weight:700;">Today's Overview</div>
-                <div style="font-size:11px;color:var(--muted);margin-top:2px;">Focus · Break · Distractions</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px;">Focus · Break</div>
               </div>
               <div class="pill" style="font-size:11px;">Live</div>
             </div>
@@ -870,14 +863,7 @@
               id="envCo2Val">—</div>
             <div style="font-size:13px;color:var(--sub);margin-top:8px;" id="envCo2Status">Optimal: < 800 ppm</div>
             </div>
-            <div class="glass" style="padding:24px;text-align:center;">
-              <div
-                style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.04em;margin-bottom:16px;">
-                AIR QUALITY (AQI)</div>
-              <div style="font-size:48px;font-weight:700;font-family:'Syne',sans-serif;color:var(--green);"
-                id="envAqiVal">—</div>
-              <div style="font-size:13px;color:var(--sub);margin-top:8px;" id="envAqiStatus">Good: 0-50</div>
-            </div>
+
           </div>
           <div class="glass" style="padding:24px;">
             <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:12px;">Weekly Averages</div>
@@ -1568,12 +1554,12 @@
             borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#60a5fa',
             tension: .4, fill: true,
           },
-          {
-            label: 'Distractions',
-            data: [], borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,.04)',
-            borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#fbbf24',
-            tension: .4, fill: true,
-          },
+          // {
+            // label: 'Distractions',
+          //   data: [], borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,.04)',
+          //   borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#fbbf24',
+          //   tension: .4, fill: true,
+          // },
         ],
       },
       options: {
@@ -1771,7 +1757,6 @@
         document.getElementById('tempVal').textContent = `${s.temperature_c}°C`;
         document.getElementById('humVal').textContent = `${s.humidity_pct}%`;
         document.getElementById('co2Val').textContent = `${s.co2_ppm} ppm`;
-        document.getElementById('aqiVal').textContent = `${s.aqi}`;
 
         const tempPct = Math.min(((s.temperature_c - 15) / 20) * 100, 100);
         const co2Pct = Math.min(((s.co2_ppm - 400) / 1000) * 100, 100);
@@ -1794,7 +1779,7 @@
           focusChart.data.labels = c.map(r => r.hour_label);
           focusChart.data.datasets[0].data = c.map(r => r.focus_minutes);
           focusChart.data.datasets[1].data = c.map(r => r.break_minutes);
-          focusChart.data.datasets[2].data = c.map(r => r.distractions);
+          // focusChart.data.datasets[2].data = c.map(r => r.distractions);
           focusChart.update('none');   // no animation on data refresh = no CPU spike
         }
 
@@ -1822,7 +1807,6 @@
         document.getElementById('envTempVal').textContent = `${s.temperature_c}°C`;
         document.getElementById('envHumVal').textContent = `${s.humidity_pct}%`;
         document.getElementById('envCo2Val').textContent = `${s.co2_ppm} ppm`;
-        document.getElementById('envAqiVal').textContent = `${s.aqi}`;
 
         // Update colors based on thresholds
         const envCo2El = document.getElementById('envCo2Val');
