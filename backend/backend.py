@@ -194,6 +194,45 @@ async def update_settings(request: Request):
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+@app.post("/api/v1/reset")
+async def reset_timer():
+    """Trigger a Pomodoro timer reset in the bridge."""
+    try:
+        settings = {}
+        if os.path.exists(SETTINGS_PATH):
+            with open(SETTINGS_PATH, "r") as f:
+                settings = json.load(f)
+        
+        settings["reset_timer"] = True
+        
+        with open(SETTINGS_PATH, "w") as f:
+            json.dump(settings, f, indent=4)
+            
+        return {"status": "success", "message": "Timer reset signal sent"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/v1/calibrate")
+async def calibrate_posture():
+    """Trigger a posture calibration in the serial bridge."""
+    try:
+        # Load existing settings
+        settings = {}
+        if os.path.exists(BRIDGE_SETTINGS_PATH):
+            with open(BRIDGE_SETTINGS_PATH, "r") as f:
+                settings = json.load(f)
+        
+        # Add calibration flag
+        settings["calibrate"] = True
+        
+        with open(BRIDGE_SETTINGS_PATH, "w") as f:
+            json.dump(settings, f, indent=4)
+            
+        return {"status": "ok", "message": "Calibration triggered"}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 @app.get("/api/v1/dashboard")
 def dashboard():
     latest = fetch_latest_session()
@@ -214,4 +253,10 @@ def dashboard():
         "ai_insight": insight,
         "insight_cache_age_seconds": cache_age,
         "sessions_analysed": len(sessions),
+        "realtime": {
+            "distance": latest.get("distance_cm", 0),
+            "baseline": latest.get("baseline_cm", 0),
+            "pom_mode": latest.get("pom_mode", "FOCUS"),
+            "pom_remaining": latest.get("pom_remaining", "25:00"),
+        }
     })

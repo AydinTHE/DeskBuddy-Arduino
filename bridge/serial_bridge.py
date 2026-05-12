@@ -26,11 +26,11 @@ from pathlib import Path
 # Config & Defaults
 # ──────────────────────────────────────────────
 DEFAULT_PORT = "COM7"
-DEFAULT_BAUD = 115200
+DEFAULT_BAUD = 9600
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "deskbuddy.db")
 
 # Session save interval (seconds) — how often we write a session row to DB
-SESSION_SAVE_INTERVAL = 60  # 1 minute
+SESSION_SAVE_INTERVAL = 10  # 10 seconds for quick feedback
 
 # Pomodoro defaults (can be overridden via settings file)
 DEFAULT_FOCUS_MIN = 25
@@ -313,16 +313,21 @@ def save_session(db_path: str, data: dict):
     cursor.execute("""
         INSERT INTO study_sessions
             (timestamp, temperature_c, humidity_pct, co2_ppm, aqi,
-             posture_status, posture_score, focus_score, session_label)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+             posture_status, posture_score, distance_cm, baseline_cm, 
+             pom_mode, pom_remaining, focus_score, session_label)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         ts,
         data["temperature_c"],
-        data.get("humidity_pct", 0.0),    # placeholder until humidity sensor is plugged in
+        data.get("humidity_pct", 0.0),
         data["co2_ppm"],
         data["aqi"],
         data["posture_status"],
         data["posture_score"],
+        data["distance_cm"],
+        data["baseline_cm"],
+        data["pom_mode"],
+        data["pom_remaining"],
         data["focus_score"],
         data["session_label"],
     ))
@@ -494,6 +499,35 @@ def main():
     break_seconds_accumulated = 0
     distraction_count = 0
     last_tick_time = time.time()
+    last_settings_check = time.time()
+
+    # ─── AUTO-RESTORE from DB ───
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM study_sessions ORDER BY id DESC LIMIT 1")
+        row = cursor.fetchone()
+        if row and row["baseline_cm"] > 0:
+            posture.baseline = row["baseline_cm"]
+            calibrated = True
+            pomodoro.start()
+            # Try to restore timer state if it's recent (within 5 mins)
+            # For simplicity, we just resume the timer. 
+            # If it was 14:32, it starts at 14:32.
+            if row["pom_remaining"]:
+                p = row["pom_remaining"].split(":")
+                if len(p) == 2:
+                    pomodoro.remaining = int(p[0]) * 60 + int(p[1])
+                    pomodoro.is_work = (row["pom_mode"] == "FOCUS")
+            
+            print(f"[Bridge] Restored baseline from DB: {posture.baseline}cm")
+            send_lcd(ser, 0, "Restored Baseline")
+            send_lcd(ser, 1, f"B:{posture.baseline}cm Timer OK")
+            time.sleep(1)
+        conn.close()
+    except Exception as e:
+        print(f"[Bridge] Could not restore baseline: {e}")
 
     # Running averages for session saves
     temp_sum = 0.0
@@ -613,23 +647,15 @@ def main():
             if pom_state["just_switched"]:
                 if pom_state["mode"] == "BREAK":
                     send_buzz(ser, 1200, 500)
-                    send_lcd(ser, 0, " TAKE A BREAK!  ")
-                    send_lcd(ser, 1, f" Back in {settings['break_min']}min   ")
                 else:
                     send_buzz(ser, 800, 500)
-                    send_lcd(ser, 0, "  FOCUS TIME!   ")
-                    send_lcd(ser, 1, f" Session {pom_state['session']}/4    ")
+            
+            # Send current timer to Arduino for the new aesthetic LCD
+            send_command(ser, f"TIMER:{pom_state['remaining']}")
 
             # ─── Update LCD with current state ───
-            if calibrated and not pom_state["just_switched"]:
-                if posture_info.get("away"):
-                    send_lcd(ser, 0, "User Away...    ")
-                else:
-                    status_str = posture_info["status"]
-                    send_lcd(ser, 0, f"P:{status_str:<8}{pom_state['remaining']}")
-
-                # Bottom line: environment summary
-                send_lcd(ser, 1, f"{temp_c:.0f}C CO2:{co2_ppm:>4}  ")
+            # (Handled by Arduino code internally now)
+            pass
 
             # ─── Posture: stop buzzer when corrected ───
             if posture_info["status"] == "Good" and last_posture_status != "Good":
@@ -648,6 +674,10 @@ def main():
                     "aqi": avg_aqi,
                     "posture_status": posture_info["status"],
                     "posture_score": posture_info["score"],
+                    "distance_cm": distance,
+                    "baseline_cm": posture.baseline or 0,
+                    "pom_mode": pom_state['mode'],
+                    "pom_remaining": pom_state['remaining'],
                     "focus_score": focus_score,
                     "session_label": get_session_label(session_count),
                     "focus_minutes": int(focus_seconds_accumulated / 60),
@@ -675,22 +705,94 @@ def main():
                 break_seconds_accumulated = 0
                 distraction_count = 0
 
-            # ─── Reload settings periodically ───
-            if int(now) % 30 == 0:  # every ~30 seconds
+            # ─── Reload settings & Check for Calibration Command ───
+            if now - last_settings_check >= 1.0:
+                last_settings_check = now
                 new_settings = load_settings()
-                if (new_settings["focus_min"] != settings["focus_min"] or
-                        new_settings["break_min"] != settings["break_min"]):
-                    settings = new_settings
+                
+                # Check for calibration trigger from Backend/UI
+                if new_settings.get("calibrate"):
+                    if distance > 0:
+                        posture.calibrate(distance)
+                        calibrated = True
+                        pomodoro.start()
+                        send_buzz(ser, 1000, 200)
+                        time.sleep(0.2)
+                        send_buzz(ser, 1200, 200)
+                        print(f"  [Bridge] Calibration triggered via UI (Baseline: {distance}cm)")
+                        
+                        # Reset the flag
+                        new_settings["calibrate"] = False
+                        try:
+                            with open(SETTINGS_PATH, "w") as f:
+                                json.dump(new_settings, f, indent=4)
+                        except Exception as e:
+                            print(f"  [Bridge] Error resetting calibrate flag: {e}")
+
+                        # ─── SAVE IMMEDIATELY after calibration ───
+                        session_data = {
+                            "temperature_c": temp_c,
+                            "humidity_pct": 0.0,
+                            "co2_ppm": co2_ppm,
+                            "aqi": aqi,
+                            "posture_status": posture_info["status"],
+                            "posture_score": posture_info["score"],
+                            "distance_cm": distance,
+                            "baseline_cm": posture.baseline or 0,
+                            "pom_mode": pom_state['mode'],
+                            "pom_remaining": pom_state['remaining'],
+                            "focus_score": focus_score,
+                            "session_label": get_session_label(session_count),
+                            "focus_minutes": int(focus_seconds_accumulated / 60),
+                            "break_minutes": int(break_seconds_accumulated / 60),
+                            "distractions": distraction_count,
+                        }
+                        try:
+                            save_session(db_path, session_data)
+                            session_count += 1
+                            print(f"  [DB] Immediate save after calibration.")
+                        except Exception as e:
+                            print(f"  [DB] Immediate save error: {e}")
+                    else:
+                        print("  [Bridge] Calibration failed: Distance <= 0")
+                        new_settings["calibrate"] = False
+                        try:
+                            with open(SETTINGS_PATH, "w") as f:
+                                json.dump(new_settings, f, indent=4)
+                        except: pass
+
+                # Check for timer reset trigger
+                if new_settings.get("reset_timer"):
+                    pomodoro.is_work = True
+                    pomodoro.remaining = pomodoro.work_secs
+                    pomodoro.session = 1
+                    pomodoro.running = True 
+                    print("  [Bridge] Timer reset via UI")
+                    
+                    # Reset the flag
+                    new_settings["reset_timer"] = False
+                    try:
+                        with open(SETTINGS_PATH, "w") as f:
+                            json.dump(new_settings, f, indent=4)
+                    except Exception as e:
+                        print(f"  [Bridge] Error resetting reset_timer flag: {e}")
+
+                # Sync other settings
+                if (new_settings.get("focus_min") != settings["focus_min"] or
+                        new_settings.get("break_min") != settings["break_min"]):
+                    settings.update(new_settings)
                     pomodoro.update_intervals(settings["focus_min"], settings["break_min"])
                     print(f"  [Settings] Updated: Focus={settings['focus_min']}min  Break={settings['break_min']}min")
+                else:
+                    settings.update(new_settings)
 
             # ─── Console output (compact) ───
             if reading_count % 4 == 1:  # print every ~2 seconds
-                status_char = {"Good": "✓", "Warning": "⚠", "Poor": "✗", "Away": "—"}.get(
+                status_char = {"Good": "OK", "Warning": "!", "Poor": "X", "Away": "-"}.get(
                     posture_info["status"], "?"
                 )
                 print(
-                    f"  {temp_c:5.1f}°C  CO2:{co2_ppm:>5}  "
+                    f"  {temp_c:5.1f}C  CO2:{co2_ppm:>5}  "
                     f"Light:{light:>4}  Dist:{distance:>4}cm  "
                     f"Posture:{status_char}  {pom_state['mode']} {pom_state['remaining']}  "
                     f"Focus:{focus_score}%"

@@ -1,7 +1,8 @@
 {
-    "focus_min": 25,
-    "break_min": 5,
-    "posture_strictness": "medium",
-    "co2_max": 1000,
-    "target_temp": 23
+    "focus_min": 10,
+    "break_min": 10,
+    "posture_strictness": "standard",
+    "co2_max": 800,
+    "target_temp": 30,
+    "calibrate": false
 }

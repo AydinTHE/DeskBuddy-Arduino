@@ -1251,6 +1251,7 @@
     });
 
     function switchView(viewName) {
+      localStorage.setItem('deskbuddy_view', viewName);
       // Hide all views
       document.getElementById('view-dashboard').style.display = 'none';
       document.getElementById('view-focus').style.display = 'none';
@@ -1483,6 +1484,10 @@
         pomRunning = false; pomIsWork = true;
         pomSecs = POM_WORK; pomSession = 1;
         pomRender();
+        
+        // Sync reset to bridge
+        fetch(`${API_BASE}/reset`, { method: 'POST' })
+          .catch(err => console.warn('[Pomodoro] Reset sync failed:', err));
       }
     }
     pomRender();
@@ -1644,17 +1649,26 @@
       },
     });
 
-    function recalibratePosture(e) {
+    async function recalibratePosture(e) {
       const btn = e.currentTarget;
       const originalText = btn.textContent;
       btn.textContent = 'Calibrating...';
 
-      // Simulate baseline calibration delay
-      setTimeout(() => {
+      try {
+        const res = await fetch(`${API_BASE}/calibrate`, { method: 'POST' });
+        if (!res.ok) throw new Error('Calibration request failed');
+        
+        // Fetch data immediately so the baseline updates on screen instantly
+        setTimeout(fetchData, 500); 
+
         btn.textContent = '✓ Baseline Updated';
-        document.getElementById('pmBaseline').textContent = document.getElementById('pmCurrent').textContent;
+        // The actual value will update via the next fetchData() cycle from the DB
         setTimeout(() => { btn.textContent = originalText; }, 2000);
-      }, 1500);
+      } catch (err) {
+        console.error(err);
+        btn.textContent = '⚠️ Failed';
+        setTimeout(() => { btn.textContent = originalText; }, 2000);
+      }
     }
 
     // ══════════════════════════════════════════════
@@ -1701,6 +1715,7 @@
           Good: 'You are sitting in a healthy posture.',
           Warning: 'Consider adjusting your sitting position.',
           Poor: 'Please correct your posture — lean back and sit straight!',
+          Away: 'User away from desk. Sensors waiting...',
         };
         document.getElementById('postureIcon').textContent = pIcon[s.posture_status] || '😊';
         document.getElementById('postureStatus').textContent = s.posture_status;
@@ -1710,7 +1725,7 @@
         badge.className = `pill badge-${s.posture_status.toLowerCase()}`;
 
         if (lastPosture && lastPosture !== s.posture_status) {
-          addFeed(pIcon[s.posture_status], `Posture changed to ${s.posture_status}`, s.session_label);
+          addFeed(pIcon[s.posture_status] || '👤', `Posture changed to ${s.posture_status}`, s.session_label);
         }
         lastPosture = s.posture_status;
 
@@ -1721,13 +1736,18 @@
         document.getElementById('pmScore').textContent = s.posture_score;
         document.getElementById('pmScore').style.color = s.posture_score >= 80 ? 'var(--green)' : s.posture_score >= 50 ? 'var(--amber)' : 'var(--red)';
 
-        // Mock current distance for visual effect based on status
-        let simulatedDistance = "50cm";
+        // Use REAL distance from backend
+        const realDist = data.realtime?.distance || s.distance_cm || 0;
+        const realBase = data.realtime?.baseline || s.baseline_cm || 0;
+        
         let simulatedColor = "var(--green)";
-        if (s.posture_status === "Warning") { simulatedDistance = "40cm"; simulatedColor = "var(--amber)"; }
-        if (s.posture_status === "Poor") { simulatedDistance = "30cm"; simulatedColor = "var(--red)"; }
-        document.getElementById('pmCurrent').textContent = simulatedDistance;
+        if (s.posture_status === "Warning") simulatedColor = "var(--amber)";
+        if (s.posture_status === "Poor") simulatedColor = "var(--red)";
+        if (s.posture_status === "Away") simulatedColor = "var(--sub)";
+
+        document.getElementById('pmCurrent').textContent = `${realDist}cm`;
         document.getElementById('pmCurrent').style.color = simulatedColor;
+        document.getElementById('pmBaseline').textContent = `${realBase}cm`;
 
         // Use placeholder stats for warnings and streak since they aren't in latest_session yet
         document.getElementById('pmWarnings').textContent = Math.max(0, 100 - s.posture_score) > 10 ? 2 : 0;
@@ -1817,6 +1837,20 @@
           document.getElementById('envCo2Status').textContent = 'Optimal: < 800 ppm';
         }
 
+        // ─── Pomodoro Sync ───
+        if (data.realtime?.pom_remaining) {
+          const parts = data.realtime.pom_remaining.split(':');
+          if (parts.length === 2) {
+            const remoteSecs = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+            const remoteMode = data.realtime.pom_mode === 'FOCUS';
+            
+            // Sync local timer to backend
+            pomIsWork = remoteMode;
+            pomSecs = remoteSecs;
+            pomRender();
+          }
+        }
+
         document.getElementById('envAvgTemp').textContent = st.avg_temp ? `${st.avg_temp.toFixed(1)}°C` : '—';
         document.getElementById('envAvgCo2').textContent = st.avg_co2 ? `${Math.round(st.avg_co2)} ppm` : '—';
 
@@ -1841,6 +1875,9 @@
     // ══════════════════════════════════════════════
     // BOOTSTRAP
     // ══════════════════════════════════════════════
+    const savedView = localStorage.getItem('deskbuddy_view') || 'dashboard';
+    switchView(savedView);
+
     fetchData();
     setInterval(fetchData, REFRESH_MS);
 
