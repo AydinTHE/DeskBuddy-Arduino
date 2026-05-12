@@ -21,7 +21,6 @@ def init_db():
             temperature_c   REAL NOT NULL,
             humidity_pct    REAL NOT NULL,
             co2_ppm         INTEGER NOT NULL,
-            aqi             INTEGER NOT NULL,
             posture_status  TEXT NOT NULL,   -- 'Good' | 'Warning' | 'Poor'
             posture_score   INTEGER NOT NULL, -- 0–100
             distance_cm     INTEGER DEFAULT 0,

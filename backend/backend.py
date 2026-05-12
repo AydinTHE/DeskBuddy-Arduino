@@ -19,13 +19,17 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from groq import Groq
+from dotenv import load_dotenv
 
 # ──────────────────────────────────────────────
 # Config
 # ──────────────────────────────────────────────
+
+load_dotenv()
+
 DB_PATH = "data/deskbuddy.db"
 BRIDGE_SETTINGS_PATH = os.path.join(os.path.dirname(__file__), "..", "bridge", "bridge_settings.json")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "YOUR_GROQ_API_KEY_HERE")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_MODEL = "llama-3.3-70b-versatile"
 CACHE_TTL_SECONDS = 120          # refresh AI insight every 2 minutes
 
