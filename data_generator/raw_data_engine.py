@@ -158,4 +158,4 @@ def seed_database(num_sessions: int = 10, delay_seconds: int = 5):
 if __name__ == "__main__":
     # Change num_sessions to how many points you want on your chart.
     # Change delay_seconds to control how fast the "live" updates happen.
-    seed_database(num_sessions=10, delay_seconds=5)
+    seed_database(num_sessions=10, delay_seconds=10)
