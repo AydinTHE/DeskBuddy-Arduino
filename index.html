@@ -498,6 +498,13 @@
                 </div>
               </div>
 
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="font-size:14px;">🍃</span>
+                  <span style="font-size:12px;color:var(--sub);">AQI</span>
+                </div>
+                <span id="aqiVal" class="font-mono" style="font-size:15px;font-weight:500;">—</span>
+              </div>
             </div>
           </div>
 
@@ -511,7 +518,7 @@
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
               <div>
                 <div class="font-display" style="font-size:15px;font-weight:700;">Today's Overview</div>
-                <div style="font-size:11px;color:var(--muted);margin-top:2px;">Focus · Break</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px;">Focus · Break · Distractions</div>
               </div>
               <div class="pill" style="font-size:11px;">Live</div>
             </div>
@@ -863,7 +870,14 @@
               id="envCo2Val">—</div>
             <div style="font-size:13px;color:var(--sub);margin-top:8px;" id="envCo2Status">Optimal: < 800 ppm</div>
             </div>
-
+            <div class="glass" style="padding:24px;text-align:center;">
+              <div
+                style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.04em;margin-bottom:16px;">
+                AIR QUALITY (AQI)</div>
+              <div style="font-size:48px;font-weight:700;font-family:'Syne',sans-serif;color:var(--green);"
+                id="envAqiVal">—</div>
+              <div style="font-size:13px;color:var(--sub);margin-top:8px;" id="envAqiStatus">Good: 0-50</div>
+            </div>
           </div>
           <div class="glass" style="padding:24px;">
             <div class="font-display" style="font-size:15px;font-weight:700;margin-bottom:12px;">Weekly Averages</div>
@@ -1237,7 +1251,6 @@
     });
 
     function switchView(viewName) {
-      localStorage.setItem('deskbuddy_view', viewName);
       // Hide all views
       document.getElementById('view-dashboard').style.display = 'none';
       document.getElementById('view-focus').style.display = 'none';
@@ -1326,13 +1339,6 @@
       if (envTempStatus) envTempStatus.textContent = `Target: ${targetTemp}°C`;
       const envCo2Status = document.getElementById('envCo2Status');
       if (envCo2Status) envCo2Status.textContent = `Target: < ${co2Max} ppm`;
-
-      // Sync settings to backend → bridge_settings.json → serial bridge
-      fetch(`${API_BASE}/settings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ focusTime, breakTime, postureStrictness: postureStr, co2Max, targetTemp }),
-      }).catch(err => console.warn('[Settings] Sync to bridge failed:', err));
     }
 
     function initSettings() {
@@ -1470,10 +1476,6 @@
         pomRunning = false; pomIsWork = true;
         pomSecs = POM_WORK; pomSession = 1;
         pomRender();
-        
-        // Sync reset to bridge
-        fetch(`${API_BASE}/reset`, { method: 'POST' })
-          .catch(err => console.warn('[Pomodoro] Reset sync failed:', err));
       }
     }
     pomRender();
@@ -1554,12 +1556,12 @@
             borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#60a5fa',
             tension: .4, fill: true,
           },
-          // {
-            // label: 'Distractions',
-          //   data: [], borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,.04)',
-          //   borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#fbbf24',
-          //   tension: .4, fill: true,
-          // },
+          {
+            label: 'Distractions',
+            data: [], borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,.04)',
+            borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#fbbf24',
+            tension: .4, fill: true,
+          },
         ],
       },
       options: {
@@ -1635,26 +1637,17 @@
       },
     });
 
-    async function recalibratePosture(e) {
+    function recalibratePosture(e) {
       const btn = e.currentTarget;
       const originalText = btn.textContent;
       btn.textContent = 'Calibrating...';
 
-      try {
-        const res = await fetch(`${API_BASE}/calibrate`, { method: 'POST' });
-        if (!res.ok) throw new Error('Calibration request failed');
-        
-        // Fetch data immediately so the baseline updates on screen instantly
-        setTimeout(fetchData, 500); 
-
+      // Simulate baseline calibration delay
+      setTimeout(() => {
         btn.textContent = '✓ Baseline Updated';
-        // The actual value will update via the next fetchData() cycle from the DB
+        document.getElementById('pmBaseline').textContent = document.getElementById('pmCurrent').textContent;
         setTimeout(() => { btn.textContent = originalText; }, 2000);
-      } catch (err) {
-        console.error(err);
-        btn.textContent = '⚠️ Failed';
-        setTimeout(() => { btn.textContent = originalText; }, 2000);
-      }
+      }, 1500);
     }
 
     // ══════════════════════════════════════════════
@@ -1701,7 +1694,6 @@
           Good: 'You are sitting in a healthy posture.',
           Warning: 'Consider adjusting your sitting position.',
           Poor: 'Please correct your posture — lean back and sit straight!',
-          Away: 'User away from desk. Sensors waiting...',
         };
         document.getElementById('postureIcon').textContent = pIcon[s.posture_status] || '😊';
         document.getElementById('postureStatus').textContent = s.posture_status;
@@ -1711,7 +1703,7 @@
         badge.className = `pill badge-${s.posture_status.toLowerCase()}`;
 
         if (lastPosture && lastPosture !== s.posture_status) {
-          addFeed(pIcon[s.posture_status] || '👤', `Posture changed to ${s.posture_status}`, s.session_label);
+          addFeed(pIcon[s.posture_status], `Posture changed to ${s.posture_status}`, s.session_label);
         }
         lastPosture = s.posture_status;
 
@@ -1722,18 +1714,13 @@
         document.getElementById('pmScore').textContent = s.posture_score;
         document.getElementById('pmScore').style.color = s.posture_score >= 80 ? 'var(--green)' : s.posture_score >= 50 ? 'var(--amber)' : 'var(--red)';
 
-        // Use REAL distance from backend
-        const realDist = data.realtime?.distance || s.distance_cm || 0;
-        const realBase = data.realtime?.baseline || s.baseline_cm || 0;
-        
+        // Mock current distance for visual effect based on status
+        let simulatedDistance = "50cm";
         let simulatedColor = "var(--green)";
-        if (s.posture_status === "Warning") simulatedColor = "var(--amber)";
-        if (s.posture_status === "Poor") simulatedColor = "var(--red)";
-        if (s.posture_status === "Away") simulatedColor = "var(--sub)";
-
-        document.getElementById('pmCurrent').textContent = `${realDist}cm`;
+        if (s.posture_status === "Warning") { simulatedDistance = "40cm"; simulatedColor = "var(--amber)"; }
+        if (s.posture_status === "Poor") { simulatedDistance = "30cm"; simulatedColor = "var(--red)"; }
+        document.getElementById('pmCurrent').textContent = simulatedDistance;
         document.getElementById('pmCurrent').style.color = simulatedColor;
-        document.getElementById('pmBaseline').textContent = `${realBase}cm`;
 
         // Use placeholder stats for warnings and streak since they aren't in latest_session yet
         document.getElementById('pmWarnings').textContent = Math.max(0, 100 - s.posture_score) > 10 ? 2 : 0;
@@ -1757,6 +1744,7 @@
         document.getElementById('tempVal').textContent = `${s.temperature_c}°C`;
         document.getElementById('humVal').textContent = `${s.humidity_pct}%`;
         document.getElementById('co2Val').textContent = `${s.co2_ppm} ppm`;
+        document.getElementById('aqiVal').textContent = `${s.aqi}`;
 
         const tempPct = Math.min(((s.temperature_c - 15) / 20) * 100, 100);
         const co2Pct = Math.min(((s.co2_ppm - 400) / 1000) * 100, 100);
@@ -1779,7 +1767,7 @@
           focusChart.data.labels = c.map(r => r.hour_label);
           focusChart.data.datasets[0].data = c.map(r => r.focus_minutes);
           focusChart.data.datasets[1].data = c.map(r => r.break_minutes);
-          // focusChart.data.datasets[2].data = c.map(r => r.distractions);
+          focusChart.data.datasets[2].data = c.map(r => r.distractions);
           focusChart.update('none');   // no animation on data refresh = no CPU spike
         }
 
@@ -1807,6 +1795,7 @@
         document.getElementById('envTempVal').textContent = `${s.temperature_c}°C`;
         document.getElementById('envHumVal').textContent = `${s.humidity_pct}%`;
         document.getElementById('envCo2Val').textContent = `${s.co2_ppm} ppm`;
+        document.getElementById('envAqiVal').textContent = `${s.aqi}`;
 
         // Update colors based on thresholds
         const envCo2El = document.getElementById('envCo2Val');
@@ -1819,20 +1808,6 @@
         } else {
           envCo2El.style.color = 'var(--green)';
           document.getElementById('envCo2Status').textContent = 'Optimal: < 800 ppm';
-        }
-
-        // ─── Pomodoro Sync ───
-        if (data.realtime?.pom_remaining) {
-          const parts = data.realtime.pom_remaining.split(':');
-          if (parts.length === 2) {
-            const remoteSecs = parseInt(parts[0]) * 60 + parseInt(parts[1]);
-            const remoteMode = data.realtime.pom_mode === 'FOCUS';
-            
-            // Sync local timer to backend
-            pomIsWork = remoteMode;
-            pomSecs = remoteSecs;
-            pomRender();
-          }
         }
 
         document.getElementById('envAvgTemp').textContent = st.avg_temp ? `${st.avg_temp.toFixed(1)}°C` : '—';
@@ -1859,9 +1834,6 @@
     // ══════════════════════════════════════════════
     // BOOTSTRAP
     // ══════════════════════════════════════════════
-    const savedView = localStorage.getItem('deskbuddy_view') || 'dashboard';
-    switchView(savedView);
-
     fetchData();
     setInterval(fetchData, REFRESH_MS);
 

@@ -24,6 +24,7 @@ def init_db():
             aqi             INTEGER NOT NULL,
             posture_status  TEXT NOT NULL,   -- 'Good' | 'Warning' | 'Poor'
             posture_score   INTEGER NOT NULL, -- 0–100
+            distance_cm     INTEGER DEFAULT 0,
             focus_score     INTEGER NOT NULL, -- 0–100 (calculated)
             session_label   TEXT NOT NULL    -- e.g. 'Morning Session 1'
         )

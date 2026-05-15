@@ -3,26 +3,32 @@ DeskBuddy — backend.py
 Run this THIRD.  Start with: uvicorn backend:app --reload --port 8000
 
 Endpoints:
-  GET /api/v1/dashboard  — latest session + chart data + cached AI insight
-  GET /api/v1/health     — simple liveness probe
+  GET  /api/v1/dashboard  — latest session + chart data + cached AI insight
+  GET  /api/v1/health     — simple liveness probe
+  POST /api/v1/settings   — sync user settings to bridge_settings.json
 """
 
 import sqlite3
+import json
 import time
 import os
 from datetime import datetime
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from groq import Groq
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ──────────────────────────────────────────────
 # Config
 # ──────────────────────────────────────────────
 DB_PATH = "data/deskbuddy.db"
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "YOUR_GROQ_API_KEY_HERE")
+BRIDGE_SETTINGS_PATH = os.path.join(os.path.dirname(__file__), "..", "bridge", "bridge_settings.json")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_MODEL = "llama-3.3-70b-versatile"
 CACHE_TTL_SECONDS = 120          # refresh AI insight every 2 minutes
 
@@ -171,6 +177,65 @@ def health():
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
 
 
+@app.post("/api/v1/settings")
+async def update_settings(request: Request):
+    """Receive user settings from the frontend and write to bridge_settings.json."""
+    body = await request.json()
+    settings = {
+        "focus_min": int(body.get("focusTime", 25)),
+        "break_min": int(body.get("breakTime", 5)),
+        "posture_strictness": body.get("postureStrictness", "medium"),
+        "co2_max": int(body.get("co2Max", 1000)),
+        "target_temp": int(body.get("targetTemp", 23)),
+    }
+    try:
+        os.makedirs(os.path.dirname(BRIDGE_SETTINGS_PATH), exist_ok=True)
+        with open(BRIDGE_SETTINGS_PATH, "w") as f:
+            json.dump(settings, f, indent=4)
+        return {"status": "ok", "settings": settings}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/v1/reset")
+async def reset_timer():
+    """Trigger a Pomodoro timer reset in the bridge."""
+    try:
+        settings = {}
+        if os.path.exists(SETTINGS_PATH):
+            with open(SETTINGS_PATH, "r") as f:
+                settings = json.load(f)
+        
+        settings["reset_timer"] = True
+        
+        with open(SETTINGS_PATH, "w") as f:
+            json.dump(settings, f, indent=4)
+            
+        return {"status": "success", "message": "Timer reset signal sent"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/v1/calibrate")
+async def calibrate_posture():
+    """Trigger a posture calibration in the serial bridge."""
+    try:
+        # Load existing settings
+        settings = {}
+        if os.path.exists(BRIDGE_SETTINGS_PATH):
+            with open(BRIDGE_SETTINGS_PATH, "r") as f:
+                settings = json.load(f)
+        
+        # Add calibration flag
+        settings["calibrate"] = True
+        
+        with open(BRIDGE_SETTINGS_PATH, "w") as f:
+            json.dump(settings, f, indent=4)
+            
+        return {"status": "ok", "message": "Calibration triggered"}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 @app.get("/api/v1/dashboard")
 def dashboard():
     latest = fetch_latest_session()
@@ -191,4 +256,10 @@ def dashboard():
         "ai_insight": insight,
         "insight_cache_age_seconds": cache_age,
         "sessions_analysed": len(sessions),
+        "realtime": {
+            "distance": latest.get("distance_cm", 0),
+            "baseline": latest.get("baseline_cm", 0),
+            "pom_mode": latest.get("pom_mode", "FOCUS"),
+            "pom_remaining": latest.get("pom_remaining", "25:00"),
+        }
     })
