@@ -1,6 +1,6 @@
 # DeskBuddy: Smart Study Gadget      
     
-An all-in-one, Arduino-powered desktop companion designed to keep you focused, healthy, and productive. DeskBuddy monitors your posture, enforces healthy study breaks using the Pomodoro technique, and keeps an eye on your room's environmental conditions.
+An all-in-one, Arduino-powered desktop companion designed to keep you focused, healthy, and productive. DeskBuddy monitors your posture, enforces healthy study breaks using the Pomodoro technique, and keeps an eye on your room's environmental conditions with the help of an web dashboard.
 
 ## Features
 * **Posture Monitoring:** Uses an HC-SR04 ultrasonic sensor to lock onto your baseline sitting position. If you slouch or lean too close to your screen for more than 7 seconds, a buzzer and visual alarm will remind you to sit up straight.
