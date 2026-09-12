@@ -5,7 +5,7 @@
 An all-in-one, Arduino-powered desktop companion designed to keep you focused, healthy, and productive. DeskBuddy monitors your posture, enforces healthy study breaks using the Pomodoro technique, and keeps an eye on your room's environmental conditions with the help of an web dashboard.
 
 ## Features
-* **Posture Monitoring:** Uses an HC-SR04 ultrasonic sensor to lock onto your baseline sitting position. If you slouch or lean too close to your screen for more than 7 seconds, a buzzer and visual alarm will remind you to sit up straight![Uploading Screenshot 2026-05-26 150928.png…]().
+* **Posture Monitoring:** Uses an HC-SR04 ultrasonic sensor to lock onto your baseline sitting position. If you slouch or lean too close to your screen for more than 7 seconds, a buzzer and visual alarm will remind you to sit up straight!.
 * **Pomodoro Timer:** Automatically tracks your study sessions (25 minutes of work, 5 minutes of break) with distinct audio cues and LCD updates.
 * **Environmental Warnings:** * **Light:** Warns you if the room is too dark to safely read (preventing eye strain).
 * **Temperature:** Alerts you if the room gets uncomfortably hot.
